@@ -16,7 +16,7 @@ from sumo_rl.environment.env import SumoEnvironment
 from sumo_rl.agents.coord_agent import CoordAgent
 from sumo_rl.exploration.epsilon_greedy import EpsilonGreedy
 
-coord_graph = np.zeros((6,6))
+coord_graph = np.zeros((6,6)) # implement various methods of graph formation
 coord_graph[0][1] = 1
 coord_graph[1][0] = 1
 coord_graph[1][4] = 1
@@ -26,7 +26,7 @@ coord_graph[5][4] = 1
 coord_graph[5][1] = 1
 coord_graph[1][5] = 1
 
-elim_ordering = [1,2,5,6]
+elim_ordering = [1,2,5,6] # implement max-plus algorithm to go here
 
 
 if __name__ == '__main__':
@@ -51,7 +51,7 @@ if __name__ == '__main__':
 
     args = prs.parse_args()
     experiment_time = str(datetime.now()).split('.')[0]
-    out_csv = 'outputs/my-2x2-intersection/q_{}_alpha{}_gamma{}_eps{}_decay{}_reward{}'.format(experiment_time, args.alpha, args.gamma, args.epsilon, args.decay, args.reward)
+    out_csv = 'outputs/my-2x2-grid/coord_q_{}_alpha{}_gamma{}_eps{}_decay{}_reward{}'.format(experiment_time, args.alpha, args.gamma, args.epsilon, args.decay, args.reward)
 
     env = SumoEnvironment(net_file='scenarios/my2x2grid/2x2.net.xml',
                           route_file=args.route,
