@@ -12,21 +12,31 @@ else:
     sys.exit("Please declare the environment variable 'SUMO_HOME'")
 
 import traci
-from sumo_rl.environment.env import SumoEnvironment
+from sumo_rl.environment.coord_env import SumoEnvironment # also coord_env
 from sumo_rl.agents.coord_agent import CoordAgent
-from sumo_rl.exploration.epsilon_greedy import EpsilonGreedy
+from sumo_rl.exploration.coord_epsilon_greedy import EpsilonGreedy
+from sumo_rl.agents.variable_elimination import VariableElimination
 
-coord_graph = np.zeros((6,6)) # implement various methods of graph formation
-coord_graph[0][1] = 1
-coord_graph[1][0] = 1
-coord_graph[1][4] = 1
-coord_graph[4][1] = 1
-coord_graph[4][5] = 1
-coord_graph[5][4] = 1
-coord_graph[5][1] = 1
-coord_graph[1][5] = 1
-
-elim_ordering = [1,2,5,6] # implement max-plus algorithm to go here
+# THE AIM IS TO HAVE A SEPARATE FUNCTION THAT MAKES A COORD GRAPH WITH VARIOUS PROPERTIES
+coord_graph = {
+    1:[2,6],
+    2:[1,5],
+    5:[2,6],
+    6:[1,5]
+}
+# remove any duplicates from coord graph
+# coord edges represent the edges as a vector where 
+coord_edges = []
+vertex_list = list(coord_graph.keys())
+for vertex in coord_graph:
+    for i in range(0,len(coord_graph[vertex])):
+        if coord_graph[vertex][i] in vertex_list:
+            coord_edges = np.append(coord_edges, vertex)
+            coord_edges = np.append(coord_edges, coord_graph[vertex][i])
+    vertex_list.remove(vertex)
+# WE ARE WORKING ON AN ALGORITHM TO CHOOSE OPTIMAL ORDERING BASED ON THE NETWORK TYPE
+elim_ordering = [1,2,5,6] # implement max-plus algorithm
+action_ordering = elim_ordering[::-1]
 
 
 if __name__ == '__main__':
@@ -73,6 +83,7 @@ if __name__ == '__main__':
                             traci.trafficlight.Phase(32, "rrrrrGrrrrrG"), 
                             traci.trafficlight.Phase(3, "rrrrryrrrrry")
                             ])
+
     if args.reward == 'av_q':
         env._compute_rewards = env._queue_average_reward
     elif args.reward == 'q':
@@ -86,13 +97,13 @@ if __name__ == '__main__':
 
     for run in range(1, args.runs+1):
         initial_states = env.reset()
-        coord_agents = {ts: CoordAgent(starting_state=env.encode(initial_states[ts]),
-                                 state_space=env.observation_space,
-                                 action_space=env.action_space,
-                                 coordination_graph = coord_graph,
+
+        coord_agents = {edge: CoordAgent(joint_starting_state=[env.encode(initial_states['{}'.format(int(coord_edges[edge]))]),env.encode(initial_states['{}'.format(int(coord_edges[edge+1]))])],
+                                 joint_state_space=[env.observation_space, env.observation_space],
+                                 joint_action_space=[env.action_space,env.action_space],
                                  alpha=args.alpha,
-                                 elim_ordering=[1,2,5,6],
-                                 exploration_strategy=EpsilonGreedy(initial_epsilon=args.epsilon, min_epsilon=args.min_epsilon, decay=args.decay)) for ts in env.ts_ids}
+                                 gamma=args.gamma) for edge in range(0,len(coord_edges),2)} 
+        strategy = EpsilonGreedy(initial_epsilon=args.epsilon, min_epsilon=args.min_epsilon, decay=args.decay)
 
         done = {'__all__': False}
         infos = []
@@ -101,21 +112,28 @@ if __name__ == '__main__':
                 _, _, done, _ = env.step({})
         else:
             while not done['__all__']:
-                # this needs to be changed:
-                # agents should act according to elimination/action selection ordering
-                # VariableElimination()
-                # want one agent to choose action, 
-                # then others can observe before they take their actions
-                # but all in one timestep
-                actions = {ts: coord_agents[ts].act() for ts in coord_agents.keys()}
 
+                # define q functions for current state for VE algo
+                q_functions = {edge: coord_agents[edge].q_table['{}'.format(coord_agents[edge].state)] for edge in coord_agents }
+ 
+                # make VE algo object 
+                ve = VariableElimination(q_functions, elim_ordering, coord_edges)
+                # do VE algo to find optimal action profile
+                opt_actions = ve.VariableElimination()
+                # use epsilon greedy strategy to choose actions 
+                actions = strategy.choose(opt_actions, env.action_space)
+                # find new state and rewards by implementing actions
                 s, r, done, _ = env.step(action=actions)
-
+                
                 if args.v:
                     print('s=', env.radix_decode(coord_agents['t'].state), 'a=', actions['t'], 's\'=', env.radix_encode(s['t']), 'r=', r['t'])
+                # update q tables 
+                # rewards are the sum of the rewards of the connected traffic lights
+                i = 0
+                for edge_id in coord_agents.keys():
+                    coord_agents[edge_id].learn(new_state=[env.encode(s['{}'.format(int(coord_edges[i]))]),env.encode(s['{}'.format(int(coord_edges[i+1]))])], reward=r['{}'.format(int(coord_edges[i]))]+r['{}'.format(int(coord_edges[i+1]))])
+                    i += 2
 
-                for agent_id in coord_agents.keys():
-                    coord_agents[agent_id].learn(new_state=env.encode(s[agent_id]), reward=r[agent_id])
         env.save_csv(out_csv, run)
         env.close()
 

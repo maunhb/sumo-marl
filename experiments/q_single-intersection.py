@@ -42,7 +42,7 @@ if __name__ == '__main__':
 
     env = SumoEnvironment(net_file='scenarios/mysingleintersection/single-intersection.net.xml',
                           route_file=args.route,
-			  trip_file=args.tripfile,
+			              trip_file=args.tripfile,
                           out_csv_name=out_csv,
                           use_gui=args.gui,
                           num_seconds=args.seconds,
@@ -79,7 +79,7 @@ if __name__ == '__main__':
                                  alpha=args.alpha,
                                  gamma=args.gamma,
                                  exploration_strategy=EpsilonGreedy(initial_epsilon=args.epsilon, min_epsilon=args.min_epsilon, decay=args.decay)) for ts in env.ts_ids}
-
+        
         done = {'__all__': False}
         infos = []
         if args.fixed:
