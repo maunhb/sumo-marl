@@ -1,4 +1,4 @@
-# SUMO-RL
+# SUMO-MARL
 
 ```
 Based off Lucas Alegre's github: https://github.com/LucasAlegre/sumo-rl
@@ -38,6 +38,3 @@ python3 experiments/q_singleintersection.py -tripfile outputs/qtrip.xml
 python3 outputs/plot.py -f outputs/my-single-intersection/q
 ```
 
-
-
-# sumo-marl
