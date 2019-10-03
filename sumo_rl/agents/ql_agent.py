@@ -14,7 +14,7 @@ class QLAgent(Agent):
         self.action = None
         self.alpha = alpha
         self.gamma = gamma
-        self.q_table = {self.state: [0 for _ in range(action_space.n)]}
+        self.q_table = {self.state: [0 for _ in range(action_space[0].n)]}
         self.exploration = exploration_strategy
         self.acc_reward = 0
 
