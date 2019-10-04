@@ -29,7 +29,7 @@ for elem in root:
             edges_from = np.append(edges_from, int(elem.attrib.get("from")))
             edges_to = np.append(edges_to, int(elem.attrib.get("to")))
 
-ext_edges = []; ext_to = []; 
+ext_edges = []; ext_to = [] 
 ent_edges = []; ent_from = []
 # find possible entrance / exits 
 for edge in range(0,len(edges)):
