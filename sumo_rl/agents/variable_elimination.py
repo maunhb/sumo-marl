@@ -1,4 +1,5 @@
 import numpy as np 
+import random
 # Variable Elimination:
 # run variable elimination to find e functions
 # then it does action selection to determine optimal action profile
@@ -32,28 +33,27 @@ class VariableElimination():
             # select actions in reverse order
             acting_agent = self.elim_ordering[i-1]
             # find the other actions of those that affect your choice
-            vars = self.functions_e_variables[acting_agent]
             arg = 0; other_agents = []
-            for x in vars:
+            for x in self.functions_e_variables[acting_agent]:
                 if x in self.elim_ordering[i::]:
                     other_agents = np.append(other_agents,x)
                     arg +=1 
             # find the maximum given the action profile
             if arg == 0:
-                action =  np.argmax(self.functions_e[acting_agent], axis=0)
+                action = self.functions_e[acting_agent]
             elif arg == 1:
-                action = np.argmax(self.functions_e[acting_agent][self.opt_action[other_agents[0]]], axis=0)
+                action = self.functions_e[acting_agent][self.opt_action[other_agents[0]]]
             elif arg == 2:
-                action = np.argmax(self.functions_e[acting_agent][self.opt_action[other_agents[0]]][self.opt_action[other_agents[1]]], axis=0)
+                action = self.functions_e[acting_agent][self.opt_action[other_agents[0]]][self.opt_action[other_agents[1]]]
             elif arg == 3:
-                action = np.argmax(self.functions_e[acting_agent][self.opt_action[other_agents[0]]][self.opt_action[other_agents[1]]][self.opt_action[other_agents[2]]], axis=0)
+                action = self.functions_e[acting_agent][self.opt_action[other_agents[0]]][self.opt_action[other_agents[1]]][self.opt_action[other_agents[2]]]
             elif arg == 4:
-                action = np.argmax(self.functions_e[acting_agent][self.opt_action[other_agents[0]]][self.opt_action[other_agents[1]]][self.opt_action[other_agents[2]]][self.opt_action[other_agents[3]]], axis=0)
+                action = self.functions_e[acting_agent][self.opt_action[other_agents[0]]][self.opt_action[other_agents[1]]][self.opt_action[other_agents[2]]][self.opt_action[other_agents[3]]]
             # update action dictionary with optimal action
+
             self.opt_action.update({acting_agent: action})
             i -= 1
         # return optimal actions
-        
         return self.opt_action 
 
     def find_scope(self, agent):
@@ -201,8 +201,15 @@ class VariableElimination():
                                 else:
                                     return print('Error: not implemented this case yet.')
         # record the e function and its variables
-        self.functions_e[agent] = np.argmax(E, axis=0)
-        self.functions_e_variables[agent] = variables
+        if len(np.shape(E)) == 1:
+            best_actions = np.argwhere(E == np.amax(E))
+            self.functions_e[agent] = int(random.choice(best_actions))
+            self.functions_e_variables[agent] = []
+        else:
+            E_shape = np.shape(E)
+            noise = self.make_noise_to_reduce_bias(E_shape)       
+            self.functions_e[agent] = np.argmax(E+noise, axis=0)
+            self.functions_e_variables[agent] = variables
 
     def check_variables(self, variables, agent):
         # need to do this when adding e_function variables to the current agent's variables 
@@ -219,5 +226,26 @@ class VariableElimination():
             # check that all variables are uneliminated agents
             if(all(x in self.agents_to_eliminate for x in variables)):
                 return variables 
+
+    def make_noise_to_reduce_bias(self, E_shape):
+        noise = np.zeros(E_shape)
+        if len(E_shape) == 1:
+            noise = np.array(range(E_shape[-1]))* 1e-15 * np.random.randint(2, size=E_shape[-1])
+        elif len(E_shape) == 2:
+            for i in range(E_shape[0]):
+                for j in range(E_shape[1]):
+                    noise[i][j] = (i+j)* 1e-15 *np.random.randint(2)
+        elif len(E_shape) == 3:
+            for i in range(E_shape[0]):
+                for j in range(E_shape[1]):
+                    for k in range(E_shape[2]):
+                        noise[i][j][k] = (i+j)* 1e-15 *np.random.randint(2)
+        elif len(E_shape) == 3:
+            for i in range(E_shape[0]):
+                for j in range(E_shape[1]):
+                    for k in range(E_shape[2]):
+                        for l in range(E_shape[3]):
+                            noise[i][j][k][l] = (i+j)* 1e-15*np.random.randint(2)
+        return noise 
 
   
