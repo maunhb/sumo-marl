@@ -20,7 +20,7 @@ if __name__ == '__main__':
 
     prs = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,
                                   description="""Q-Learning Single-Intersection""")
-    prs.add_argument("-route", dest="route", type=str, default='scenarios/mysingleintersection/single-intersection.rou.xml', help="Route definition xml file.\n")
+    prs.add_argument("-route", dest="route", type=str, default='scenarios/my2x2grid/2x2.rou.xml', help="Route definition xml file.\n")
     prs.add_argument("-mingreen", dest="min_green", type=int, default=10, required=False, help="Minimum green time.\n")
     prs.add_argument("-maxgreen", dest="max_green", type=int, default=32, required=False, help="Maximum green time.\n")
     prs.add_argument("-gui", action="store_true", default=False, help="Run with visualization on SUMO.\n")
@@ -34,7 +34,7 @@ if __name__ == '__main__':
     experiment_time = str(datetime.now()).split('.')[0]
     out_csv = 'outputs/my-single-intersection/static_{}'.format(experiment_time)
 
-    env = SumoEnvironment(net_file='scenarios/mysingleintersection/single-intersection.net.xml',
+    env = SumoEnvironment(net_file='scenarios/my2x2grid/2x2.net.xml',
                           route_file=args.route,
                           out_csv_name=out_csv,
 			              trip_file=args.tripfile,

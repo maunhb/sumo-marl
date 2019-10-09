@@ -12,17 +12,17 @@ else:
     sys.exit("Please declare the environment variable 'SUMO_HOME'")
 
 import traci
-from sumo_rl.environment.coord_env import SumoEnvironment # also coord_env
+from sumo_rl.environment.coord_env import SumoEnvironment 
 from sumo_rl.agents.coord_agent import CoordAgent
 from sumo_rl.exploration.coord_epsilon_greedy import EpsilonGreedy
 from sumo_rl.agents.variable_elimination import VariableElimination
 
 # THE AIM IS TO HAVE A SEPARATE FUNCTION THAT MAKES A COORD GRAPH WITH VARIOUS PROPERTIES
 coord_graph = {
-    1:[2,6],
-    2:[1,5],
-    5:[2,6],
-    6:[1,5]
+    1:[2,5],
+    2:[1,6],
+    5:[1,6],
+    6:[2,5]
 }
 # remove any duplicates from coord graph
 # coord edges represent the edges as a vector where 
@@ -34,9 +34,9 @@ for vertex in coord_graph:
             coord_edges = np.append(coord_edges, vertex)
             coord_edges = np.append(coord_edges, coord_graph[vertex][i])
     vertex_list.remove(vertex)
-# WE ARE WORKING ON AN ALGORITHM TO CHOOSE OPTIMAL ORDERING BASED ON THE NETWORK TYPE
-elim_ordering = [1,2,5,6] # implement max-plus algorithm
-action_ordering = elim_ordering[::-1]
+# WORKING ON AN ALGORITHM TO CHOOSE OPTIMAL ORDERING BASED ON THE NETWORK TYPE
+elim_ordering = [1,2,6,5] 
+#action_ordering = elim_ordering[::-1]
 
 
 if __name__ == '__main__':
@@ -53,7 +53,7 @@ if __name__ == '__main__':
     prs.add_argument("-maxgreen", dest="max_green", type=int, default=30, required=False, help="Maximum green time.\n")
     prs.add_argument("-gui", action="store_true", default=False, help="Run with visualization on SUMO.\n")
     prs.add_argument("-fixed", action="store_true", default=False, help="Run with fixed timing traffic signals.\n")
-    prs.add_argument("-s", dest="seconds", type=int, default=120000, required=False, help="Number of simulation seconds.\n")
+    prs.add_argument("-s", dest="seconds", type=int, default=100000, required=False, help="Number of simulation seconds.\n")
     prs.add_argument("-r", dest="reward", type=str, default='wait1', required=False, help="Reward function: [-r av_q] for average queue reward, [-r q] for queue reward, [-r wait1] for waiting time reward,  [-r wait2] for waiting time reward 2,  [-r wait3] for waiting time reward 3.\n")
     prs.add_argument("-v", action="store_true", default=False, help="Print experience tuple.\n")
     prs.add_argument("-runs", dest="runs", type=int, default=1, help="Number of runs.\n")
@@ -113,26 +113,27 @@ if __name__ == '__main__':
         else:
             while not done['__all__']:
 
-                # define q functions for current state for VE algo
-                q_functions = {edge: coord_agents[edge].q_table['{}'.format(coord_agents[edge].state)] for edge in coord_agents }
- 
+                # get q functions for current state for VE algo
+                q_functions = {edge: coord_agents[edge].q_table['{}'.format(coord_agents[edge].state)] for edge in coord_agents.keys() }
+     
                 # make VE algo object 
                 ve = VariableElimination(q_functions, elim_ordering, coord_edges)
                 # do VE algo to find optimal action profile
                 opt_actions = ve.VariableElimination()
+                print(opt_actions)
                 # use epsilon greedy strategy to choose actions 
-                actions = strategy.choose(opt_actions, env.action_space)
+                action_profile = strategy.choose(opt_actions, env.action_space)
                 # find new state and rewards by implementing actions
-                s, r, done, _ = env.step(action=actions)
+                s, r, done, _ = env.step(action=action_profile)
                 
                 if args.v:
-                    print('s=', env.radix_decode(coord_agents['t'].state), 'a=', actions['t'], 's\'=', env.radix_encode(s['t']), 'r=', r['t'])
+                    print('s=', env.radix_decode(coord_agents['t'].state), 'a=', action_profile['t'], 's\'=', env.radix_encode(s['t']), 'r=', r['t'])
                 # update q tables 
                 # rewards are the sum of the rewards of the connected traffic lights
                 i = 0
                 for edge_id in coord_agents.keys():
-                    coord_agents[edge_id].learn(new_state=[env.encode(s['{}'.format(int(coord_edges[i]))]),env.encode(s['{}'.format(int(coord_edges[i+1]))])], reward=r['{}'.format(int(coord_edges[i]))]+r['{}'.format(int(coord_edges[i+1]))])
-                    i += 2
+                    coord_agents[edge_id].learn(new_state=[env.encode(s['{}'.format(int(coord_edges[i]))]),env.encode(s['{}'.format(int(coord_edges[i+1]))])], actions=[action_profile[coord_edges[i]],action_profile[coord_edges[i+1]]],reward=r['{}'.format(int(coord_edges[i]))]+r['{}'.format(int(coord_edges[i+1]))])
+                    i += 2 
 
         env.save_csv(out_csv, run)
         env.close()
