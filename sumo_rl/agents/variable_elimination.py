@@ -22,8 +22,6 @@ class VariableElimination():
         while i < len(self.elim_ordering):
             # find next agent to eliminate
             agent2elim = self.elim_ordering[i] 
-            print('agent')
-            print(agent2elim)
             # find their scope
             connected_agents, connected_edge_indexes, agent_q_input = self.find_scope(agent2elim)
             # update their e function
@@ -53,10 +51,8 @@ class VariableElimination():
             elif arg == 4:
                 action = self.functions_e_argmax[acting_agent][self.opt_action[other_agents[0]]][self.opt_action[other_agents[1]]][self.opt_action[other_agents[2]]][self.opt_action[other_agents[3]]]
             # update action dictionary with optimal action
-
             self.opt_action.update({acting_agent: action})
             i -= 1
-            print(self.opt_action)
         # return optimal actions
         return self.opt_action 
 
@@ -77,7 +73,6 @@ class VariableElimination():
         # at the moment it only works if you have a maximum of 3 neighbours each
         # but can write a few more lines of code to make it work for max degree 4
         E = []
-        print(scope)
         for i in range(len(scope)):
             # if this Q function has not been replaced by an e:
             if scope[i] in self.agents_to_eliminate:
@@ -99,7 +94,7 @@ class VariableElimination():
                     new_shape = np.shape(new_E)
                     old_shape = np.shape(old_E)
                     if len(old_shape) == 1:
-                        E = [[old_E[i]+new_E[i][k] for k in range(old_shape[1])] for i in range(old_shape[0])]
+                        E = [[old_E[i]+new_E[i][k] for k in range(new_shape[1])] for i in range(old_shape[0])]
                         # update e function variable
                         variables = np.append(variables,scope[i])
                     elif len(old_shape) == 2:
@@ -220,7 +215,6 @@ class VariableElimination():
             self.functions_e_variables[agent] = []
         else:     
             self.functions_e[agent] = np.amax(E, axis=0)
-            print(self.functions_e[agent])
             E_shape = np.shape(E)
             noise = self.make_noise_to_reduce_bias(E_shape)
             self.functions_e_argmax[agent] = np.argmax(E+noise, axis=0)
