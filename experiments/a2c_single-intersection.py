@@ -1,7 +1,9 @@
 import gym
 import numpy as np
 
-from stable_baselines.deepq import DQN, MlpPolicy
+from stable_baselines.common.policies import MlpPolicy
+from stable_baselines.common.vec_env import SubprocVecEnv
+from stable_baselines import A2C
 
 import argparse
 import os
@@ -20,7 +22,7 @@ import traci
 
 if __name__ == '__main__':
     prs = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-                                  description="""DQN Single-Intersection""")
+                                  description="""A2C Single-Intersection""")
     prs.add_argument("-tripfile", dest="tripfile", type=str, required=True, help="Choose a tripinfo output file name (.xml).\n")
     prs.add_argument("-gui", action="store_true", default=False, help="Run with visualization on SUMO.\n")
     prs.add_argument("-fixed", action="store_true", default=False, help="Run with fixed timing traffic signals.\n")
@@ -28,7 +30,8 @@ if __name__ == '__main__':
     prs.add_argument("-r", dest="reward", type=str, default='wait1', required=False, help="Reward function: [-r av_q] for average queue reward, [-r q] for queue reward, [-r wait1] for waiting time reward,  [-r wait2] for waiting time reward 2,  [-r wait3] for waiting time reward 3.\n")
     args = prs.parse_args()
 
-    env = SumoEnvironment(net_file='scenarios/mysingleintersection/single-intersection.net.xml',
+    n_cpu = 1
+    env = SubprocVecEnv([lambda: SumoEnvironment(net_file='scenarios/mysingleintersection/single-intersection.net.xml',
                                     route_file='scenarios/mysingleintersection/single-intersection.rou.xml',
                                     out_csv_name='outputs/my-single-intersection/dqn-stable-mlp-bs',
                                     trip_file=args.tripfile,
@@ -46,14 +49,13 @@ if __name__ == '__main__':
                                         traci.trafficlight.Phase(3, "rrryyrrrryyr"),
                                         traci.trafficlight.Phase(32, "rrrrrGrrrrrG"), 
                                         traci.trafficlight.Phase(3, "rrrrryrrrrry")
-                                        ])
+                                        ]) for i in range(n_cpu)])
 
-    model = DQN(
+    model = A2C(
         env=env,
+        verbose=1,
         policy=MlpPolicy,
         learning_rate=1e-3,
-        buffer_size=50000,
-        exploration_fraction=0.1,
-        exploration_final_eps=0.02
+        lr_schedule='constant'
     )
     model.learn(total_timesteps=100000)

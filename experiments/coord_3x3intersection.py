@@ -19,10 +19,15 @@ from sumo_rl.agents.variable_elimination import VariableElimination
 
 # THE AIM IS TO HAVE A SEPARATE FUNCTION THAT MAKES A COORD GRAPH WITH VARIOUS PROPERTIES
 coord_graph = {
-    1:[2,5],
-    2:[1,6],
-    5:[1,6],
-    6:[2,5]
+    0:[1],
+    1:[0,2],
+    2:[1,5],
+    3:[6,4],
+    4:[3],
+    5:[2,8],
+    6:[7,3],
+    7:[8,6],
+    8:[5,7]
 }
 # remove any duplicates from coord graph
 # coord edges represent the edges as a vector where 
@@ -35,7 +40,7 @@ for vertex in coord_graph:
             coord_edges = np.append(coord_edges, coord_graph[vertex][i])
     vertex_list.remove(vertex)
 # WORKING ON AN ALGORITHM TO CHOOSE OPTIMAL ORDERING BASED ON THE NETWORK TYPE
-elim_ordering = [1,2,6,5] 
+elim_ordering = [0,1,2,5,8,7,6,3,4] 
 #action_ordering = elim_ordering[::-1]
 
 
@@ -43,7 +48,7 @@ if __name__ == '__main__':
 
     prs = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,
                                   description="""Q-Learning Single-Intersection""")
-    prs.add_argument("-route", dest="route", type=str, default='scenarios/my2x2grid/2x2.rou.xml', help="Route definition xml file.\n")
+    prs.add_argument("-route", dest="route", type=str, default='scenarios/my3x3grid/3x3.rou.xml', help="Route definition xml file.\n")
     prs.add_argument("-a", dest="alpha", type=float, default=0.1, required=False, help="Alpha learning rate.\n")
     prs.add_argument("-g", dest="gamma", type=float, default=0.99, required=False, help="Gamma discount rate.\n")
     prs.add_argument("-e", dest="epsilon", type=float, default=0.05, required=False, help="Epsilon.\n")
@@ -63,7 +68,7 @@ if __name__ == '__main__':
     experiment_time = str(datetime.now()).split('.')[0]
     out_csv = 'outputs/my-2x2-grid/coord_q_{}_alpha{}_gamma{}_eps{}_decay{}_reward{}'.format(experiment_time, args.alpha, args.gamma, args.epsilon, args.decay, args.reward)
 
-    env = SumoEnvironment(net_file='scenarios/my2x2grid/2x2.net.xml',
+    env = SumoEnvironment(net_file='scenarios/my3x3grid/3x3_12links.net.xml',
                           route_file=args.route,
                           out_csv_name=out_csv,
                           trip_file=args.tripfile,
@@ -120,7 +125,7 @@ if __name__ == '__main__':
                 ve = VariableElimination(q_functions, elim_ordering, coord_edges)
                 # do VE algo to find optimal action profile
                 opt_actions = ve.VariableElimination()
-
+ 
                 # use epsilon greedy strategy to choose actions 
                 action_profile = strategy.choose(opt_actions, env.action_space)
                 # find new state and rewards by implementing actions
