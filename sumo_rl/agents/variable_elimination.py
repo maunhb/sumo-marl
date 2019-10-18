@@ -50,6 +50,8 @@ class VariableElimination():
                 action = self.chooseaction(arg, acting_agent, other_agents)
             self.opt_action.update({acting_agent: action})
             i -= 1
+        print('Optimal actions:')
+        print(self.opt_action)
         return self.opt_action 
 
     def find_scope(self, agent):
@@ -78,7 +80,6 @@ class VariableElimination():
         updates e function argmax giving best response conditional on e function variables actions
         '''
         E = []
-        print('agent '+str(agent))
         for i in range(len(scope)):
             if scope[i] in self.agents_to_eliminate:
                 if E == []:
@@ -101,7 +102,6 @@ class VariableElimination():
                         if scope[i] == variables[j]:
                             index = j
                             break 
-                    print(index)
                     new_E = np.asarray(new_E)
                     old_E = np.asarray(old_E)
                     if index == -1:
@@ -128,8 +128,7 @@ class VariableElimination():
                     variables = self.functions_e_variables[scope[i]]
                     variables = self.check_variables(variables, agent)
                     self.functions_e_used[scope[i]] = True 
-                    print(E)
-                    print(variables)
+
                 elif self.functions_e_used[scope[i]] == False:
                     old_E = E
                     new_E = self.functions_e[scope[i]]
@@ -175,11 +174,7 @@ class VariableElimination():
             self.functions_e[agent] = int(random.choice(best_actions))
             self.functions_e_variables[agent] = []
         else:     
-            print(E)
             self.functions_e[agent] = np.amax(E, axis=0)
-            print('agent '+str(agent))
-            print(variables)
-            print(self.functions_e[agent])
             noise = self.make_noise_to_reduce_bias(np.shape(E))
             self.functions_e_argmax[agent] = np.argmax(E+noise, axis=0)
             self.functions_e_variables[agent] = variables
