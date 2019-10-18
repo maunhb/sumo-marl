@@ -1,62 +1,64 @@
 import numpy as np 
 import random
-# Variable Elimination:
-# run variable elimination to find e functions
-# then it does action selection to determine optimal action profile
+
 class VariableElimination():
    
     def __init__(self, local_q_table, ordering, edges):
+        '''
+        Variables 
+        q_functions:  a dictionary of local q tables, given state s
+        function_e:  (dict) agents e functions
+        functions_e_argmax:   (dict int matrices) best response tables - which action to take dependent on opponents
+        functions_e_variables:  (dict int array) which variables the e function include (other than their own action)
+        functions_e_used:   (dict bool) has e function been replaced by another e function 
+        '''
         self.agents_to_eliminate = ordering
-        self.q_functions = local_q_table # a dictionary of local q tables, given state s
-        self.functions_e = {agent: None for agent in ordering} # dict of agents e functions
-        self.functions_e_argmax = {agent: None for agent in ordering} # the best response tables
-        self.functions_e_variables = {agent: None for agent in ordering} # compiles which variables the e function include (other than their own action)
-        self.functions_e_used = {agent: False for agent in ordering} # has the e function been replaced by another e function 
+        self.q_functions = local_q_table 
+        self.functions_e = {agent: None for agent in ordering} 
+        self.functions_e_argmax = {agent: None for agent in ordering} 
+        self.functions_e_variables = {agent: None for agent in ordering} 
+        self.functions_e_used = {agent: False for agent in ordering}  
         self.elim_ordering = ordering
         self.coord_graph = edges 
         self.opt_action = {} 
 
     def VariableElimination(self):
+        ''' 
+        Eliminates agents by replacing their Q function with e functions
+        Then agents choose their actions in the opposite order
+        Returns dictionary of optimal action
+        '''
         i = 0
         # eliminate agents and update functions
         while i < len(self.elim_ordering):
-            # find next agent to eliminate
             agent2elim = self.elim_ordering[i] 
-            # find their scope
             connected_agents, connected_edge_indexes, agent_q_input = self.find_scope(agent2elim)
-            # update their e function
             self.new_function(agent2elim, connected_agents, connected_edge_indexes, agent_q_input)
-            # remove them from agents to eliminate
             self.agents_to_eliminate = np.delete(self.agents_to_eliminate,0)
             i += 1
         #find optimal joint actions
         while i > 0:
-            # select actions in reverse order
             acting_agent = self.elim_ordering[i-1]
-            # find the other actions of those that affect your choice
             arg = 0; other_agents = []
             for x in self.functions_e_variables[acting_agent]:
                 if x in self.elim_ordering[i::]:
                     other_agents = np.append(other_agents,x)
                     arg +=1 
-            # find the maximum given the action profile
             if arg == 0:
                 action = self.functions_e[acting_agent]
-            elif arg == 1:
-                action = self.functions_e_argmax[acting_agent][self.opt_action[other_agents[0]]]
-            elif arg == 2:
-                action = self.functions_e_argmax[acting_agent][self.opt_action[other_agents[0]]][self.opt_action[other_agents[1]]]
-            elif arg == 3:
-                action = self.functions_e_argmax[acting_agent][self.opt_action[other_agents[0]]][self.opt_action[other_agents[1]]][self.opt_action[other_agents[2]]]
-            elif arg == 4:
-                action = self.functions_e_argmax[acting_agent][self.opt_action[other_agents[0]]][self.opt_action[other_agents[1]]][self.opt_action[other_agents[2]]][self.opt_action[other_agents[3]]]
-            # update action dictionary with optimal action
+            else:
+                action = self.chooseaction(arg, acting_agent, other_agents)
             self.opt_action.update({acting_agent: action})
             i -= 1
-        # return optimal actions
         return self.opt_action 
 
     def find_scope(self, agent):
+        ''' 
+        Returns:
+        scope  (list int) of neighbouring agents
+        edge_indexes (list int) of agent's coorindation graph edges
+        q_input (list bool) of whether the agent in the first or second node in the edge vector
+        '''
         scope = []; edge_indexes = []; q_input = []
         for i in range(0,len(self.coord_graph),2):
             if self.coord_graph[i] == agent:
@@ -70,15 +72,16 @@ class VariableElimination():
         return scope, edge_indexes, q_input
 
     def new_function(self, agent, scope, edge_id, q_function_index):
-        # at the moment it only works if you have a maximum of 3 neighbours each
-        # but can write a few more lines of code to make it work for max degree 4
+        '''
+        updates e function of the agent
+        updates e function variables (list of e function inputs excluding the agent)
+        updates e function argmax giving best response conditional on e function variables actions
+        '''
         E = []
+        print('agent '+str(agent))
         for i in range(len(scope)):
-            # if this Q function has not been replaced by an e:
             if scope[i] in self.agents_to_eliminate:
-                # is it the first element of the E matrix?
                 if E == []:
-                    # make a new E
                     if q_function_index[i] == 0:
                         E = self.q_functions[edge_id[i]]
                         variables = np.array([scope[i]])
@@ -93,150 +96,116 @@ class VariableElimination():
                         new_E = list(map(list, zip(*self.q_functions[edge_id[i]])))
                     new_shape = np.shape(new_E)
                     old_shape = np.shape(old_E)
-                    if len(old_shape) == 1:
-                        E = [[old_E[i]+new_E[i][k] for k in range(new_shape[1])] for i in range(old_shape[0])]
-                        # update e function variable
+                    index = -1
+                    for j in range(len(variables)):
+                        if scope[i] == variables[j]:
+                            index = j
+                            break 
+                    print(index)
+                    new_E = np.asarray(new_E)
+                    old_E = np.asarray(old_E)
+                    if index == -1:
                         variables = np.append(variables,scope[i])
-                    elif len(old_shape) == 2:
-                        if scope[i] in variables:  
-                            E = [[old_E[i][k]+new_E[i][k] for k in range(old_shape[1])] for i in range(old_shape[0])]
-                        else:
-                            E = [[[old_E[i][j]+new_E[i][k] for k in range(new_shape[1])] for j in range(old_shape[1])] for i in range(old_shape[0])]
-                            # update e function variable
-                            variables = np.append(variables,scope[i])
-                    elif len(old_shape) == 3:
-                        if scope[i] == variables[0]:
-                            E = [[[old_E[i][j][k]+new_E[i][j] for k in range(old_shape[2])] for j in range(old_shape[1])] for i in range(old_shape[0])]
-                        elif scope[i] == variables[1]:
-                            E = [[[old_E[i][j][k]+new_E[i][k] for k in range(old_shape[2])] for j in range(old_shape[1])] for i in range(old_shape[0])]
-                        else:
-                            E = [[[[old_E[i][j][k]+new_E[i][l] for l in range(new_shape[1])] for k in range(old_shape[2])] for j in range(old_shape[1])] for i in range(old_shape[0])]
-                            # update e function variables
-                            variables = np.append(variables,scope[i])
-                    elif len(old_shape) == 4:
-                        if scope[i] == variables[0]:
-                            E = [[[[old_E[i][j][k][l]+new_E[i][j] for l in range(old_shape[3])] for k in range(old_shape[2])] for j in range(old_shape[1])] for i in range(old_shape[0])]
-                        elif scope[i] == variables[1]:
-                            E = [[[[old_E[i][j][k][l]+new_E[i][k] for l in range(old_shape[3])] for k in range(old_shape[2])] for j in range(old_shape[1])] for i in range(old_shape[0])]
-                        elif scope[i] == variables[2]:
-                            E = [[[[old_E[i][j][k][l]+new_E[i][l] for l in range(old_shape[3])] for k in range(old_shape[2])] for j in range(old_shape[1])] for i in range(old_shape[0])]
-                        else:
-                            E = [[[[[old_E[i][j][k][l]+new_E[i][m] for m in range(new_shape[1])] for l in range(old_shape[3])] for k in range(old_shape[2])] for j in range(old_shape[1])] for i in range(old_shape[0])]
-                            # update e function variables
-                            variables = np.append(variables,scope[i])
+                        new_shape = np.append(old_shape,new_shape[1:])
+                        if len(old_shape) > 1:
+                            new_E = np.broadcast_to(new_E[:,self.printnewaxis(len(old_shape)-1),:], new_shape)
+                        # add one new axis to old E as we know new E is a Q function
+                        E = np.broadcast_to(old_E[:,np.newaxis],new_shape) + new_E
                     else:
-                       return print('Error: max degree in coordination graph larger than 4.')
+                        new_E = np.broadcast_to(new_E, old_shape)
+                        new_E = np.swapaxes(new_E, 1, index+1)
+                        E = old_E + new_E
+
             # if this local Q function has been replaced by an e:
             else:
-                # is it the first element of the E matrix?
-                if E == []:
-                    if self.functions_e_used[scope[i]] == False:
-                        E = self.functions_e[scope[i]]
-                        new_shape = np.shape(E)
-                        variables = self.functions_e_variables[scope[i]]
-                        # FIX THIS BIT HERE 
-                        # if scope[i] in variables: 
-                        #     if new_shape == 2:
-                        #         E = [[E[i][k] for k in range(new_shape[1])] for i in range(new_shape[0])]
-                        self.functions_e_used[scope[i]] = True 
-                else:
-                    if self.functions_e_used[scope[i]] == False:
-                        old_E = E
-                        new_E = self.functions_e[scope[i]]
-                        self.functions_e_used[scope[i]] = True 
-                        if old_E != []:
-                            # check sizes of old_E and new_E
-                            old_shape = np.shape(old_E)
-                            new_shape = np.shape(new_E)
-                            if len(new_shape) > 4:
-                                return print('Error: maximum coordination graph degree higher than 4.')
-                            if len(old_shape) == 1:
-                                if len(new_shape) == 1:
-                                    E = [old_E[i]+new_E[i] for i in range(old_shape[0])]
-                                elif len(new_shape) == 2:
-                                    E = [[old_E[i]+new_E[i][k] for k in range(new_shape[1])] for i in range(old_shape[0])]
-                                    variables = self.functions_e_variables[scope[i]]
-                                    variables = self.check_variables(variables,agent)
-                            elif len(old_shape) == 2:
-                                if len(new_shape) == 1:
-                                    E = [[old_E[i][k]+new_E[i] for k in range(old_shape[1])] for i in range(old_shape[0])]
-                                elif len(new_shape) == 2:
-                                    if scope[i] in variables: 
-                                        E = [[old_E[i][k]+new_E[i][k] for k in range(old_shape[1])] for i in range(old_shape[0])]
-                                    else:
-                                        E = [[[old_E[i][j]+new_E[i][k] for k in range(new_shape[1])] for j in range(old_shape[1])] for i in range(old_shape[0])]
-                                        # update e function variables
-                                        variables = np.append(variables, self.functions_e_variables[scope[i]])
-                                        variables = self.check_variables(variables, agent)
-                            elif len(old_shape) == 3:
-                                if len(new_shape) == 1:
-                                    E = [[[old_E[i][j][k]+new_E[i] for k in range(old_shape[2])] for j in range(old_shape[1])] for i in range(old_shape[0])]
-                                elif len(new_shape) == 2:
-                                    if scope[i] == variables[0]:
-                                        E = [[[old_E[i][j][k]+new_E[i][j] for k in range(old_shape[2])] for j in range(old_shape[1])] for i in range(old_shape[0])]
-                                    elif scope[i] == variables[1]:
-                                        E = [[[old_E[i][j][k]+new_E[i][k] for k in range(old_shape[2])] for j in range(old_shape[1])] for i in range(old_shape[0])]
-                                    else:
-                                        E = [[[[old_E[i][j][k]+new_E[i][l] for l in range(new_shape[1])] for k in range(old_shape[2])] for j in range(old_shape[1])] for i in range(old_shape[0])]
-                                        # update e function variables
-                                        variables = np.append(variables, self.functions_e_variables[scope[i]])
-                                        variables = self.check_variables(variables, agent)
-                                elif len(new_shape) == 3:
-                                    return print('Error: not implemented this case yet.')
-                                else:
-                                    return print('Error: not implemented this case yet.')
-                            elif len(old_shape) == 4:
-                                if len(new_shape) == 1:
-                                    E = [[[[old_E[i][j][k][l]+new_E[i] for l in range(old_shape[3])] for k in range(old_shape[2])] for j in range(old_shape[1])] for i in range(old_shape[0])]
-                                elif len(new_shape) == 2:
-                                    if scope[i] == variables[0]:
-                                        E = [[[[old_E[i][j][k][l]+new_E[i][j] for l in range(old_shape[3])] for k in range(old_shape[2])] for j in range(old_shape[1])] for i in range(old_shape[0])]
-                                    elif scope[i] == variables[1]:
-                                        E = [[[[old_E[i][j][k][l]+new_E[i][k] for l in range(old_shape[3])] for k in range(old_shape[2])] for j in range(old_shape[1])] for i in range(old_shape[0])]
-                                    elif scope[i] == variables[2]:
-                                        E = [[[[old_E[i][j][k][l]+new_E[i][l] for l in range(old_shape[3])] for k in range(old_shape[2])] for j in range(old_shape[1])] for i in range(old_shape[0])]
-                                    else:
-                                        E = [[[[[old_E[i][j][l][m]+new_E[i][k] for k in range(new_shape[1])] for m in range(old_shape[3])] for l in range(old_shape[2])] for j in range(old_shape[1])] for i in range(old_shape[0])]
-                                        # update e function variables
-                                        variables = np.append(variables, self.functions_e_variables[scope[i]])
-                                        variables = self.check_variables(variables, agent)
-                                elif len(new_shape) == 3:
-                                    return print('Error: not implemented this case yet.')
-                                else:
-                                    return print('Error: not implemented this case yet.')
-        # CORRECTIONS:
-        # change e functions to be max, and save the argmax ?
-        # do you need to add all q and e's?
+                if E == [] and self.functions_e_used[scope[i]] == False:
+                    E = self.functions_e[scope[i]]
+                    for j in range(len(self.functions_e_variables[scope[i]])):
+                        if agent == self.functions_e_variables[scope[i]][j]:
+                            index = j
+                            break 
+                    E = np.swapaxes(E, 0, index)
+                    variables = self.functions_e_variables[scope[i]]
+                    variables = self.check_variables(variables, agent)
+                    self.functions_e_used[scope[i]] = True 
+                    print(E)
+                    print(variables)
+                elif self.functions_e_used[scope[i]] == False:
+                    old_E = E
+                    new_E = self.functions_e[scope[i]]
+                    for j in range(len(self.functions_e_variables[scope[i]])):
+                        if agent == self.functions_e_variables[scope[i]][j]:
+                            index = j
+                            break 
+                    new_E = np.swapaxes(new_E, 0, index)
+                    self.functions_e_used[scope[i]] = True 
+                    if old_E != []:
+                        old_shape = np.shape(old_E)
+                        new_shape = np.shape(new_E)
+                        index = -1
+                        for j in range(len(variables)):
+                            if scope[i] == variables[j]:
+                                index = j
+                                break 
+                        new_E = np.asarray(new_E)
+                        old_E = np.asarray(old_E)
+                        if index == -1:
+                            variables = np.append(variables,scope[i])
+                            variables = self.check_variables(variables, agent)
+                            next_shape = np.append(old_shape,new_shape[1:])
+                            if len(old_shape) > 1:
+                                new_E = np.broadcast_to(new_E[:,self.printnewaxis(len(old_shape)-1),:], next_shape)
+                            if len(new_shape) > 1:
+                                old_E = np.broadcast_to(old_E[:,self.printnewaxis(len(new_shape)-1)], next_shape)
+                            E = old_E + new_E
+                        else:
+                            if old_shape >= new_shape:
+                                new_E = np.broadcast_to(new_E, old_shape)
+                                new_E = np.swapaxes(new_E, 1, index+1)
+                                E = old_E + new_E
+                            else:
+                                old_E = np.broadcast_to(old_E, new_shape)
+                                old_E = np.swapaxes(old_E, 1, index+1)
+                                E = old_E + new_E
+
         variables = self.check_variables(variables, agent)
-        # record the e function and its variables
+
         if len(np.shape(E)) == 1:
             best_actions = np.argwhere(E == np.amax(E, axis=0))
             self.functions_e[agent] = int(random.choice(best_actions))
             self.functions_e_variables[agent] = []
         else:     
+            print(E)
             self.functions_e[agent] = np.amax(E, axis=0)
-            E_shape = np.shape(E)
-            noise = self.make_noise_to_reduce_bias(E_shape)
+            print('agent '+str(agent))
+            print(variables)
+            print(self.functions_e[agent])
+            noise = self.make_noise_to_reduce_bias(np.shape(E))
             self.functions_e_argmax[agent] = np.argmax(E+noise, axis=0)
             self.functions_e_variables[agent] = variables
 
     def check_variables(self, variables, agent):
-        # need to do this when adding e_function variables to the current agent's variables 
+        '''
+        do this when adding e_function variables to the current agent's variables 
+        removes multiple values and the agent himself from the neighbours list
+        and checks all agents are uneliminated 
+        '''
         while True:
-            #check what variables are included in the e function
             for i in range(len(variables)):
                 if variables[i] not in self.agents_to_eliminate:
                     variables = np.append(variables, self.functions_e_variables[variables[i]])
                     variables = np.delete(variables,i)
-            # remove any duplicates
             variables = np.unique(variables)
-            # remove any variables that are the agent
             variables = variables[variables != agent]
-            # check that all variables are uneliminated agents
             if(all(x in self.agents_to_eliminate for x in variables)):
                 return variables 
 
     def make_noise_to_reduce_bias(self, E_shape):
+        '''
+        This estimates the solution to finding a random
+        argmax value rather than the first occurrence
+        NEEDS TO BE CHANGED TO REMOVE BIAS IN LARGER ACTION SPACES
+        '''
         noise = np.zeros(E_shape)
         if len(E_shape) == 1:
             noise = np.array(range(E_shape[-1]))* 1e-15 * np.random.randint(2, size=E_shape[-1])
@@ -249,7 +218,7 @@ class VariableElimination():
                 for j in range(E_shape[1]):
                     for k in range(E_shape[2]):
                         noise[i][j][k] = (i+j)* 1e-15 *np.random.randint(2)
-        elif len(E_shape) == 3:
+        elif len(E_shape) == 4:
             for i in range(E_shape[0]):
                 for j in range(E_shape[1]):
                     for k in range(E_shape[2]):
@@ -257,4 +226,24 @@ class VariableElimination():
                             noise[i][j][k][l] = (i+j)* 1e-15*np.random.randint(2)
         return noise 
 
-  
+    def printnewaxis(self,i):
+        '''
+        used in new_function to reshape E
+        '''
+        if i ==1:
+            return np.newaxis
+        else:
+            return self.printnewaxis(i-1),np.newaxis
+
+    def chooseaction(self, length, acting_agent, other_agents):
+        '''
+        Returns optimal action given opponent strategies
+        '''
+        i = length
+        if length == 0:  
+            return self.functions_e_argmax[acting_agent]
+        else:
+            i -= 1
+            return self.chooseaction(length-1,acting_agent,other_agents)[self.opt_action[other_agents[i]]]
+        
+
