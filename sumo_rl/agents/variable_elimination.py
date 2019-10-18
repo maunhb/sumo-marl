@@ -199,26 +199,29 @@ class VariableElimination():
         '''
         This estimates the solution to finding a random
         argmax value rather than the first occurrence
-        NEEDS TO BE CHANGED TO REMOVE BIAS IN LARGER ACTION SPACES
+     
         '''
         noise = np.zeros(E_shape)
-        if len(E_shape) == 1:
-            noise = np.array(range(E_shape[-1]))* 1e-15 * np.random.randint(2, size=E_shape[-1])
-        elif len(E_shape) == 2:
-            for i in range(E_shape[0]):
-                for j in range(E_shape[1]):
-                    noise[i][j] = (i+j)* 1e-15 *np.random.randint(2)
-        elif len(E_shape) == 3:
-            for i in range(E_shape[0]):
-                for j in range(E_shape[1]):
-                    for k in range(E_shape[2]):
-                        noise[i][j][k] = (i+j)* 1e-15 *np.random.randint(2)
-        elif len(E_shape) == 4:
-            for i in range(E_shape[0]):
-                for j in range(E_shape[1]):
-                    for k in range(E_shape[2]):
-                        for l in range(E_shape[3]):
-                            noise[i][j][k][l] = (i+j)* 1e-15*np.random.randint(2)
+        noise = np.broadcast_to(noise, E_shape)
+        # for smaller network (highest degree less than 5) use this:
+        # if len(E_shape) == 1:
+        #     noise = np.array(range(E_shape[-1]))* 1e-15 * np.random.randint(2, size=E_shape[-1])
+        # elif len(E_shape) == 2:
+        #     for i in range(E_shape[0]):
+        #         for j in range(E_shape[1]):
+        #             noise[i][j] = (i+j)* 1e-15 *np.random.randint(2)
+        # elif len(E_shape) == 3:
+        #     for i in range(E_shape[0]):
+        #         for j in range(E_shape[1]):
+        #             for k in range(E_shape[2]):
+        #                 noise[i][j][k] = (i+j)* 1e-15 *np.random.randint(2)
+        # elif len(E_shape) == 4:
+        #     for i in range(E_shape[0]):
+        #         for j in range(E_shape[1]):
+        #             for k in range(E_shape[2]):
+        #                 for l in range(E_shape[3]):
+        #                     noise[i][j][k][l] = (i+j)* 1e-15*np.random.randint(2)
+
         return noise 
 
     def printnewaxis(self,i):
