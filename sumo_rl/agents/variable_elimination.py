@@ -5,12 +5,15 @@ class VariableElimination():
    
     def __init__(self, local_q_table, ordering, edges):
         '''
-        Variables 
+        Elements 
         q_functions:  a dictionary of local q tables, given state s
-        function_e:  (dict) agents e functions
+        function_e:  (dict int matrices) agents e functions
         functions_e_argmax:   (dict int matrices) best response tables - which action to take dependent on opponents
         functions_e_variables:  (dict int array) which variables the e function include (other than their own action)
         functions_e_used:   (dict bool) has e function been replaced by another e function 
+        elim_ordering: (list int) order in which agents should be eliminated - opposite of action selection
+        coord_graph: (list int) list of vertices connected by edges eg [v_1(e_1), v_2(e_1), v_1(e_2), v_2(e_2)]
+        opt_action: (dict int) outputs of VE - the optimal action to take for each player 
         '''
         self.agents_to_eliminate = ordering
         self.q_functions = local_q_table 
@@ -97,11 +100,7 @@ class VariableElimination():
                         new_E = list(map(list, zip(*self.q_functions[edge_id[i]])))
                     new_shape = np.shape(new_E)
                     old_shape = np.shape(old_E)
-                    index = -1
-                    for j in range(len(variables)):
-                        if scope[i] == variables[j]:
-                            index = j
-                            break 
+                    index = self.findindex(variables, scope[i])
                     new_E = np.asarray(new_E)
                     old_E = np.asarray(old_E)
                     if index == -1:
@@ -120,11 +119,7 @@ class VariableElimination():
             else:
                 if E == [] and self.functions_e_used[scope[i]] == False:
                     E = self.functions_e[scope[i]]
-                    for j in range(len(self.functions_e_variables[scope[i]])):
-                        if agent == self.functions_e_variables[scope[i]][j]:
-                            index = j
-                            break 
-                    E = np.swapaxes(E, 0, index)
+                    E = np.swapaxes(E, 0, self.findindex(self.functions_e_variables[scope[i]],agent))
                     variables = self.functions_e_variables[scope[i]]
                     variables = self.check_variables(variables, agent)
                     self.functions_e_used[scope[i]] = True 
@@ -132,20 +127,12 @@ class VariableElimination():
                 elif self.functions_e_used[scope[i]] == False:
                     old_E = E
                     new_E = self.functions_e[scope[i]]
-                    for j in range(len(self.functions_e_variables[scope[i]])):
-                        if agent == self.functions_e_variables[scope[i]][j]:
-                            index = j
-                            break 
-                    new_E = np.swapaxes(new_E, 0, index)
+                    new_E = np.swapaxes(new_E, 0, self.findindex(self.functions_e_variables[scope[i]],agent))
                     self.functions_e_used[scope[i]] = True 
                     if old_E != []:
                         old_shape = np.shape(old_E)
                         new_shape = np.shape(new_E)
-                        index = -1
-                        for j in range(len(variables)):
-                            if scope[i] == variables[j]:
-                                index = j
-                                break 
+                        index = self.findindex(variables, scope[i])
                         new_E = np.asarray(new_E)
                         old_E = np.asarray(old_E)
                         if index == -1:
@@ -161,22 +148,21 @@ class VariableElimination():
                             if old_shape >= new_shape:
                                 new_E = np.broadcast_to(new_E, old_shape)
                                 new_E = np.swapaxes(new_E, 1, index+1)
-                                E = old_E + new_E
                             else:
                                 old_E = np.broadcast_to(old_E, new_shape)
                                 old_E = np.swapaxes(old_E, 1, index+1)
-                                E = old_E + new_E
+                            E = old_E + new_E
 
         variables = self.check_variables(variables, agent)
-
-        if len(np.shape(E)) == 1:
+        E_size = np.shape(E)
+        if len(E_size) == 1:
+            print('here')
             best_actions = np.argwhere(E == np.amax(E, axis=0))
             self.functions_e[agent] = int(random.choice(best_actions))
             self.functions_e_variables[agent] = []
         else:     
             self.functions_e[agent] = np.amax(E, axis=0)
-            noise = self.make_noise_to_reduce_bias(np.shape(E))
-            self.functions_e_argmax[agent] = np.argmax(E+noise, axis=0)
+            self.findargmax(E, E_size, agent)
             self.functions_e_variables[agent] = variables
 
     def check_variables(self, variables, agent):
@@ -194,35 +180,6 @@ class VariableElimination():
             variables = variables[variables != agent]
             if(all(x in self.agents_to_eliminate for x in variables)):
                 return variables 
-
-    def make_noise_to_reduce_bias(self, E_shape):
-        '''
-        This estimates the solution to finding a random
-        argmax value rather than the first occurrence
-     
-        '''
-        noise = np.zeros(E_shape)
-        noise = np.broadcast_to(noise, E_shape)
-        # for smaller network (highest degree less than 5) use this:
-        # if len(E_shape) == 1:
-        #     noise = np.array(range(E_shape[-1]))* 1e-15 * np.random.randint(2, size=E_shape[-1])
-        # elif len(E_shape) == 2:
-        #     for i in range(E_shape[0]):
-        #         for j in range(E_shape[1]):
-        #             noise[i][j] = (i+j)* 1e-15 *np.random.randint(2)
-        # elif len(E_shape) == 3:
-        #     for i in range(E_shape[0]):
-        #         for j in range(E_shape[1]):
-        #             for k in range(E_shape[2]):
-        #                 noise[i][j][k] = (i+j)* 1e-15 *np.random.randint(2)
-        # elif len(E_shape) == 4:
-        #     for i in range(E_shape[0]):
-        #         for j in range(E_shape[1]):
-        #             for k in range(E_shape[2]):
-        #                 for l in range(E_shape[3]):
-        #                     noise[i][j][k][l] = (i+j)* 1e-15*np.random.randint(2)
-
-        return noise 
 
     def printnewaxis(self,i):
         '''
@@ -243,5 +200,40 @@ class VariableElimination():
         else:
             i -= 1
             return self.chooseaction(length-1,acting_agent,other_agents)[self.opt_action[other_agents[i]]]
+
+    def findindex(self,vector,element):
+        '''
+        Inputs: a vector and an element
+        Returns: the first index of the vector where the element exists 
+        or -1 if the element doesn't belong in the vector
+        '''
+        for j in range(len(vector)):
+            if element == vector[j]:
+                return j
+        return -1
+
+    def findargmax(self,E, E_size, agent ):
+        argmax = np.zeros(E_size[1:])
+        argmaxshape = np.shape(argmax)
+        indices = self.generateindices(argmaxshape)
+        for ind in indices:
+            inputstring = "E[:,{}]".format(str(ind)[1:-1])
+            input = eval(inputstring)
+            best_actions = np.argwhere(input == np.amax(input))
+            argmax[tuple(ind)] = int(random.choice(best_actions))
+        argmax = argmax.astype(int)
+        self.functions_e_argmax[agent] = argmax
+
+    def generateindices(self, shape):
+        indices = [[]]
+        for dim in shape:
+            new_indices = []
+            for ind in indices:
+                for n in range(dim):
+                    new_indices.append(ind+[n])
+            indices = new_indices
+        return indices 
+
+        
         
 
