@@ -32,7 +32,7 @@ if __name__ == '__main__':
     prs.add_argument("-gui", action="store_true", default=False, help="Run with visualization on SUMO.\n")
     prs.add_argument("-fixed", action="store_true", default=False, help="Run with fixed timing traffic signals.\n")
     prs.add_argument("-s", dest="seconds", type=int, default=100000, required=False, help="Number of simulation seconds.\n")
-    prs.add_argument("-r", dest="reward", type=str, default='wait2', required=False, help="Reward function: choose wait2.\n")
+    prs.add_argument("-r", dest="reward", type=str, default='wait2', required=False, help="Reward function: wait or wait2.\n")
     prs.add_argument("-v", action="store_true", default=False, help="Print experience tuple.\n")
     prs.add_argument("-runs", dest="runs", type=int, default=1, help="Number of runs.\n")
     prs.add_argument("-tripfile", dest="tripfile", type=str, required=True, help="Choose a tripinfo output file name (.xml).\n")
@@ -40,7 +40,6 @@ if __name__ == '__main__':
     args = prs.parse_args()
     experiment_time = str(datetime.now()).split('.')[0]
     out_csv = 'outputs/my-single-intersection/q_{}_alpha{}_gamma{}_eps{}_decay{}_reward{}'.format(experiment_time, args.alpha, args.gamma, args.epsilon, args.decay, args.reward)
-    #tripfile = 'outputs/my-single-intersection/trip_q_{}_alpha{}_gamma{}_eps{}_decay{}_reward{}'.format(experiment_time, args.alpha, args.gamma, args.epsilon, args.decay, args.reward)
 
     env = SumoEnvironment(net_file='scenarios/mysingleintersection/single-intersection.net.xml',
                           route_file=args.route,
