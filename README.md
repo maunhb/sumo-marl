@@ -1,7 +1,7 @@
 # SUMO-MARL
 
 ```
-Based off Lucas Alegre's github: https://github.com/LucasAlegre/sumo-rl
+Adapted from Lucas Alegre's github repo: https://github.com/LucasAlegre/sumo-rl
 ```
 
 ## Install
