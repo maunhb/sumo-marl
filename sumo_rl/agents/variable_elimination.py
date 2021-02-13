@@ -138,9 +138,12 @@ class VariableElimination():
                         if index == -1:
                             variables = np.append(variables,scope[i])
                             variables = self.check_variables(variables, agent)
-                            next_shape = np.append(old_shape,new_shape[1:])
+                            next_shape = old_shape + new_shape[1:]
                             if len(old_shape) > 1:
-                                new_E = np.broadcast_to(new_E[:,self.printnewaxis(len(old_shape)-1),:], next_shape)
+                                if len(new_shape) > 1:
+                                    new_E = np.broadcast_to(new_E[:,self.printnewaxis(len(old_shape)-1),:], next_shape)
+                                else:
+                                    new_E = np.broadcast_to(new_E[:,self.printnewaxis(len(old_shape)-1)], next_shape)
                             if len(new_shape) > 1:
                                 old_E = np.broadcast_to(old_E[:,self.printnewaxis(len(new_shape)-1)], next_shape)
                             E = old_E + new_E
@@ -156,7 +159,6 @@ class VariableElimination():
         variables = self.check_variables(variables, agent)
         E_size = np.shape(E)
         if len(E_size) == 1:
-            print('here')
             best_actions = np.argwhere(E == np.amax(E, axis=0))
             self.functions_e[agent] = int(random.choice(best_actions))
             self.functions_e_variables[agent] = []
@@ -212,12 +214,16 @@ class VariableElimination():
                 return j
         return -1
 
-    def findargmax(self,E, E_size, agent ):
+    def findargmax(self, E, E_size, agent):
+        '''
+        Randomly selects the argmax of E with respect to the first index 
+        '''
         argmax = np.zeros(E_size[1:])
         argmaxshape = np.shape(argmax)
         indices = self.generateindices(argmaxshape)
         for ind in indices:
             inputstring = "E[:,{}]".format(str(ind)[1:-1])
+            E = np.asarray(E)
             input = eval(inputstring)
             best_actions = np.argwhere(input == np.amax(input))
             argmax[tuple(ind)] = int(random.choice(best_actions))
@@ -225,6 +231,9 @@ class VariableElimination():
         self.functions_e_argmax[agent] = argmax
 
     def generateindices(self, shape):
+        '''
+        Generates a list of all possibe integer vectors within a space
+        '''
         indices = [[]]
         for dim in shape:
             new_indices = []
@@ -234,6 +243,19 @@ class VariableElimination():
             indices = new_indices
         return indices 
 
-        
-        
+def MakeVertexList(coord_graph):
+    '''
+     Removes any duplicates from coord graph.
+     '''
+    coord_edges = []
+    vertex_list = list(coord_graph.keys())
+    for vertex in coord_graph:
+        for i in range(0,len(coord_graph[vertex])):
+            if coord_graph[vertex][i] in vertex_list:
+                coord_edges = np.append(coord_edges, 
+                                            int(vertex))
+                coord_edges = np.append(coord_edges, 
+                                            int(coord_graph[vertex][i]))
+        vertex_list.remove(vertex)
 
+    return vertex_list, coord_edges
