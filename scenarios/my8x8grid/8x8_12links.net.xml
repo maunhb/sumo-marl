@@ -666,9 +666,9 @@
         <phase duration="3"  state="yyrrrryyrrrr"/>
         <phase duration="32" state="rrGrrrrrGrrr"/>
         <phase duration="3"  state="rryrrrrryrrr"/>
-	<phase duration="32" state="rrrGGrrrrGGr"/>
+	    <phase duration="32" state="rrrGGrrrrGGr"/>
         <phase duration="3"  state="rrryyrrrryyr"/>
-	<phase duration="32" state="rrrrrGrrrrrG"/>
+	    <phase duration="32" state="rrrrrGrrrrrG"/>
         <phase duration="3"  state="rrrrryrrrrry"/>
     </tlLogic>
     <tlLogic id="1" type="static" programID="0" offset="0">
