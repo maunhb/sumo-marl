@@ -14,7 +14,7 @@ class EpsilonGreedy:
         if np.random.rand() < self.epsilon:
             action = int(action_space.sample())
         else:
-            action = np.argmax(q_table[state])
+            action = self.randargmax(np.array(q_table[state]))
 
         self.epsilon = max(self.epsilon*self.decay, self.min_epsilon)
         #print(self.epsilon)
@@ -22,3 +22,7 @@ class EpsilonGreedy:
 
     def reset(self):
         self.epsilon = self.initial_epsilon
+
+    def randargmax(self, b,**kw):
+        """ a random tie-breaking argmax"""
+        return np.argmax(np.random.random(b.shape) * (b==b.max()), **kw)
