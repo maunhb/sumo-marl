@@ -35,6 +35,7 @@ if __name__ == '__main__':
     prs.add_argument("-v", action="store_true", default=False, help="Print experience tuple.\n")
     prs.add_argument("-runs", dest="runs", type=int, default=1, help="Number of runs.\n")
     prs.add_argument("-tripfile", dest="tripfile", type=str, required=True, help="Choose a tripinfo output file name (.xml).\n")
+    prs.add_argument("-summaryfile", dest="summaryfile", default='outputs/summaryq3x3.xml', type=str, required=False, help="Choose a summary file name (.xml).\n")
     args = prs.parse_args()
     experiment_time = str(datetime.now()).split('.')[0]
     out_csv = 'outputs/my-3x3-grid/q_{}_alpha{}_gamma{}_eps{}_decay{}_reward{}'.format(experiment_time, args.alpha, args.gamma, args.epsilon, args.decay, args.reward)
@@ -43,6 +44,7 @@ if __name__ == '__main__':
                           route_file=args.route,
                           out_csv_name=out_csv,
                           trip_file=args.tripfile,
+                          summary_file=args.summaryfile,
                           use_gui=args.gui,
                           num_seconds=args.seconds,
                           min_green=args.min_green,

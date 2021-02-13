@@ -15,11 +15,14 @@ from sumo_rl.environment.env import SumoEnvironment
 from sumo_rl.agents.ql_agent import QLAgent
 from sumo_rl.exploration.epsilon_greedy import EpsilonGreedy
 
+from sumo_rl.environment.collect_p import CollectP2
+
+
 
 if __name__ == '__main__':
 
     prs = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-                                  description="""Q-Learning Single-Intersection""")
+                                  description="""Static Single-Intersection""")
     prs.add_argument("-route", dest="route", type=str, default='scenarios/mysingleintersection/single-intersection.rou.xml', help="Route definition xml file.\n")
     prs.add_argument("-mingreen", dest="min_green", type=int, default=10, required=False, help="Minimum green time.\n")
     prs.add_argument("-maxgreen", dest="max_green", type=int, default=32, required=False, help="Maximum green time.\n")
@@ -30,6 +33,8 @@ if __name__ == '__main__':
     prs.add_argument("-tripfile", dest="tripfile", type=str, required=True, help="Choose a tripinfo output file name (.xml).\n")
     prs.add_argument("-v", action="store_true", default=False, help="Print experience tuple.\n")
     prs.add_argument("-runs", dest="runs", type=int, default=1, help="Number of runs.\n")
+    prs.add_argument("-summaryfile", dest="summaryfile", default='outputs/summarystaticsingle.xml', type=str, required=False, help="Choose a summary file name (.xml).\n")
+    
     args = prs.parse_args()
     experiment_time = str(datetime.now()).split('.')[0]
     out_csv = 'outputs/my-single-intersection/static_{}'.format(experiment_time)
@@ -38,6 +43,7 @@ if __name__ == '__main__':
                           route_file=args.route,
                           out_csv_name=out_csv,
 			              trip_file=args.tripfile,
+                          summary_file=args.summaryfile,
                           use_gui=args.gui,
                           num_seconds=args.seconds,
                           min_green=args.min_green,
@@ -58,20 +64,24 @@ if __name__ == '__main__':
         env._compute_rewards = env._queue_average_reward
     else:
         env._compute_rewards = env._waiting_time_reward
+    
 
     for run in range(1, args.runs+1):
         initial_states = env.reset()
         done = {'__all__': False}
+        collect_ts_data =  CollectP2(ts_ids=env.ts_ids, phases=env.phases, filename='outputs/CollectingP/singlestatic') 
+
+        
 
         infos = []
         if args.fixed:
-            while not done['__all__']:
+            for i in range(args.seconds):
                 env._sumo_step()
+                collect_ts_data._add_p_data(time=traci.simulation.getCurrentTime()/1000)
 
-                # Need to implement a stop traci here!!!!
 
                 
-
+        collect_ts_data._write_p_data_file()
         env.save_csv(out_csv, run)
         env.close()
 

@@ -19,7 +19,7 @@ from sumo_rl.exploration.epsilon_greedy import EpsilonGreedy
 if __name__ == '__main__':
 
     prs = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-                                  description="""Q-Learning Single-Intersection""")
+                                  description="""Static 3x3-Intersection""")
     prs.add_argument("-route", dest="route", type=str, default='scenarios/my3x3grid/3x3.rou.xml', help="Route definition xml file.\n")
     prs.add_argument("-mingreen", dest="min_green", type=int, default=10, required=False, help="Minimum green time.\n")
     prs.add_argument("-maxgreen", dest="max_green", type=int, default=32, required=False, help="Maximum green time.\n")
@@ -30,6 +30,7 @@ if __name__ == '__main__':
     prs.add_argument("-tripfile", dest="tripfile", type=str, required=True, help="Choose a tripinfo output file name (.xml).\n")
     prs.add_argument("-v", action="store_true", default=False, help="Print experience tuple.\n")
     prs.add_argument("-runs", dest="runs", type=int, default=1, help="Number of runs.\n")
+    prs.add_argument("-summaryfile", dest="summaryfile", default='outputs/summarystatic3x3.xml', type=str, required=False, help="Choose a summary file name (.xml).\n")
     args = prs.parse_args()
     experiment_time = str(datetime.now()).split('.')[0]
     out_csv = 'outputs/my-single-intersection/static_{}'.format(experiment_time)
@@ -38,6 +39,7 @@ if __name__ == '__main__':
                           route_file=args.route,
                           out_csv_name=out_csv,
 			              trip_file=args.tripfile,
+                          summary_file=args.summaryfile,
                           use_gui=args.gui,
                           num_seconds=args.seconds,
                           min_green=args.min_green,
@@ -65,12 +67,9 @@ if __name__ == '__main__':
 
         infos = []
         if args.fixed:
-            while not done['__all__']:
+            for i in range(args.seconds):
                 env._sumo_step()
 
-                # Need to implement a stop traci here!!!!
-
-                
 
         env.save_csv(out_csv, run)
         env.close()
