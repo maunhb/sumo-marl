@@ -4,12 +4,32 @@ import pandas as pd
 import xml.etree.ElementTree as et 
 import random 
 
+'''
+Makes .rou.xml file for given .net.xml file and simulation length.
+
+Std Inputs:
+--------
+-n location of .net.xml file
+-r name of route file
+-t simulation length
+
+'''
+
 prs = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-prs.add_argument("-n", dest="network", required=True, help="The .net.xml file to make routes for.\n")
-prs.add_argument("-r", dest="route", required=True, help="The location and name of the .rou.xml file to make.\n")
-prs.add_argument("-t", dest="time", required=False, default=100000, type=int, help="The length of the simulation.\n")
+prs.add_argument("-n", dest="network", required=True, 
+                                       help="The .net.xml file to make routes for.\n")
+prs.add_argument("-r", dest="route", required=True,
+                                     help="The name of the .rou.xml file to make.\n")
+prs.add_argument("-t", dest="time", required=False, default=2000000, type=int, 
+                                    help="The length of the simulation.\n")
 args = prs.parse_args()
 
+if args.time < 1000:
+    raise "Error: Time must be greater than 1000."
+if args.route[-8:] != ".rou.xml":
+    raise "Error: Route file must end in .rou.xml!"
+if args.network[-8:] != ".net.xml":
+    raise "Error: Network file must end in .net.xml!"
 
 tree = et.parse(str(args.network))
 root = tree.getroot()
@@ -61,13 +81,19 @@ f = open(str(args.route), 'w')
 
 f.write("<routes>\n")
 for routes in range(0,len(origins)):
-    f.write("<trip id='trip_{}_{}' depart='0' from='{}' to='{}' />\n".format(origins[routes],destinations[routes],origins[routes],destinations[routes]))
+    f.write("<trip id='trip_{}_{}' depart='0' from='{}' to='{}' />\n".format(origins[routes],
+                                                                             destinations[routes],
+                                                                             origins[routes],
+                                                                             destinations[routes]))
 
 for time in range(0,args.time,1000):
     for routes in range(0,len(origins)):
-        var = random.randint(0,2)
+        var = random.randint(0,5)
         sign = random.randint(-1,1)
-        f.write("<flow id='flow_{}_{}_{}' begin='{}' end='{}' number='{}' from='{}' to='{}' departSpeed='max' departPos='base' departLane='best'/> \n".format(origins[routes],destinations[routes],time, time, time+1000, 3 + sign*var,origins[routes],destinations[routes] ))
+        f.write("<flow id='flow_{}_{}_{}' ".format(origins[routes],destinations[routes],time))
+        f.write("begin='{}' end='{}' number='{}'".format(time, time+1000, 8 + sign*var))
+        f.write("from='{}' to='{}'".format(origins[routes],destinations[routes] ))
+        f.write("departSpeed='max' departPos='base' departLane='best'/> \n")
 
 f.write("</routes>\n")
 f.close()
