@@ -1,5 +1,6 @@
 import os
 import sys
+import numpy as np
 if 'SUMO_HOME' in os.environ:
     tools = os.path.join(os.environ['SUMO_HOME'], 'tools')
     sys.path.append(tools)
@@ -84,6 +85,52 @@ class TrafficSignal:
             for veh in veh_list:
                 veh_lane = self.get_edge_id(traci.vehicle.getLaneID(veh))
                 acc = traci.vehicle.getAccumulatedWaitingTime(veh)
+                if veh not in self.env.vehicles:
+                    self.env.vehicles[veh] = {veh_lane: acc}
+                else:
+                    self.env.vehicles[veh][veh_lane] = acc - sum([self.env.vehicles[veh][lane] for lane in self.env.vehicles[veh].keys() if lane != veh_lane])
+                wait_time += self.env.vehicles[veh][veh_lane]
+            wait_time_per_road.append(wait_time)
+        return wait_time_per_road
+    
+    def get_waiting_times(self):
+        wait_time = np.array([0])
+        for p in range(self.num_green_phases):
+            veh_list = self._get_veh_list(p)
+            for veh in veh_list:
+                veh_lane = self.get_edge_id(traci.vehicle.getLaneID(veh))
+                acc = traci.vehicle.getAccumulatedWaitingTime(veh)
+                if veh not in self.env.vehicles:
+                    self.env.vehicles[veh] = {veh_lane: acc}
+                else:
+                    self.env.vehicles[veh][veh_lane] = acc - sum([self.env.vehicles[veh][lane] for lane in self.env.vehicles[veh].keys() if lane != veh_lane])
+                wait_time= np.append(wait_time,self.env.vehicles[veh][veh_lane])
+            
+        return wait_time
+
+    def get_biggest_waiting_time(self):
+        wait_time = np.array([0])
+        for p in range(self.num_green_phases):
+            veh_list = self._get_veh_list(p)
+            for veh in veh_list:
+                veh_lane = self.get_edge_id(traci.vehicle.getLaneID(veh))
+                acc = traci.vehicle.getAccumulatedWaitingTime(veh)
+                if veh not in self.env.vehicles:
+                    self.env.vehicles[veh] = {veh_lane: acc}
+                else:
+                    self.env.vehicles[veh][veh_lane] = acc - sum([self.env.vehicles[veh][lane] for lane in self.env.vehicles[veh].keys() if lane != veh_lane])
+                wait_time= np.append(wait_time,self.env.vehicles[veh][veh_lane])
+        max_wait_time = np.max(wait_time)
+        return max_wait_time
+
+    def get_squared_waiting_time(self):
+        wait_time_per_road = []
+        for p in range(self.num_green_phases):
+            veh_list = self._get_veh_list(p)
+            wait_time = 0.0
+            for veh in veh_list:
+                veh_lane = self.get_edge_id(traci.vehicle.getLaneID(veh))
+                acc = (traci.vehicle.getAccumulatedWaitingTime(veh))**2
                 if veh not in self.env.vehicles:
                     self.env.vehicles[veh] = {veh_lane: acc}
                 else:

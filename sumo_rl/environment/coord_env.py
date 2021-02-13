@@ -36,12 +36,13 @@ class SumoEnvironment(MultiAgentEnv):
     :single_agent: (bool) If true, it behaves like a regular gym.Env. Else, it behaves like a MultiagentEnv (https://github.com/ray-project/ray/blob/master/python/ray/rllib/env/multi_agent_env.py)
     """
 
-    def __init__(self, net_file, route_file, trip_file, phases, out_csv_name=None, use_gui=False, num_seconds=20000, max_depart_delay=100000,
+    def __init__(self, net_file, route_file, trip_file, summary_file, phases, out_csv_name=None, use_gui=False, num_seconds=20000, max_depart_delay=100000,
                  time_to_load_vehicles=0, delta_time=5, min_green=5, max_green=50, single_agent=False):
 
         self._net = net_file
         self._route = route_file
         self.trip_file = trip_file 
+        self.summary_file = summary_file
         self.use_gui = use_gui
         if self.use_gui:
             self._sumo_binary = sumolib.checkBinary('sumo-gui')
@@ -93,7 +94,7 @@ class SumoEnvironment(MultiAgentEnv):
 
         traci.close()
         
-    def reset(self):
+    def reset(self, run):
         if self.run != 0:
             self.save_csv(self.out_csv_name, self.run)
         self.run += 1
@@ -104,7 +105,8 @@ class SumoEnvironment(MultiAgentEnv):
                      '-r', self._route,
                      '--max-depart-delay', str(self.max_depart_delay), 
                      '--waiting-time-memory', '10000', 
-                     '--tripinfo-output', self.trip_file,
+                     '--tripinfo-output', str(self.trip_file)+str(run)+str('.xml'),
+                     '--summary', self.summary_file,
                      '--random']
         if self.use_gui:
             sumo_cmd.append('--start')
@@ -227,6 +229,55 @@ class SumoEnvironment(MultiAgentEnv):
             rewards[ts] = -ts_wait
             self.last_measure[ts] = ts_wait
         return rewards
+    ### MY REWARD FUNCTIONS 
+    def _total_wait(self):
+        rewards = {}
+        for ts in self.ts_ids:
+            rewards[ts] = - sum(self.traffic_signals[ts].get_waiting_time())
+        return rewards
+
+    def _total_wait_2(self):
+        rewards = {}
+        for ts in self.ts_ids:
+            rewards[ts] = - (sum(self.traffic_signals[ts].get_waiting_time()))**2
+        return rewards
+
+    def _total_stopped(self):
+        rewards = {}
+        for ts in self.ts_ids:
+            rewards[ts] = - sum(self.traffic_signals[ts].get_stopped_vehicles_num())
+        return rewards
+    
+    def _total_stopped_2(self):
+        rewards = {}
+        for ts in self.ts_ids:
+            rewards[ts] = - (sum(self.traffic_signals[ts].get_stopped_vehicles_num()))**2
+        return rewards
+
+    def _total_density(self):
+        rewards = {}
+        for ts in self.ts_ids:
+            rewards[ts] = - sum(self.traffic_signals[ts].get_density())
+        return rewards
+    
+    def _total_density_2(self):
+        rewards = {}
+        for ts in self.ts_ids:
+            rewards[ts] = - (sum(self.traffic_signals[ts].get_density()))**2
+        return rewards
+    
+    def _total_stopped_density(self):
+        rewards = {}
+        for ts in self.ts_ids:
+            rewards[ts] = - sum(self.traffic_signals[ts].get_stopped_density())
+        return rewards
+    
+    def _total_stopped_density_2(self):
+        rewards = {}
+        for ts in self.ts_ids:
+            rewards[ts] = - (sum(self.traffic_signals[ts].get_stopped_density()))**2
+        return rewards
+
 
     def _sumo_step(self):
         traci.simulationStep()
