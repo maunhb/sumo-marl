@@ -14,6 +14,7 @@ import traci
 from sumo_rl.environment.env import SumoEnvironment
 from sumo_rl.agents.ql_agent import QLAgent
 from sumo_rl.exploration.epsilon_greedy import EpsilonGreedy
+from sumo_rl.environment.collect_p import CollectP2
 
 
 if __name__ == '__main__':
@@ -80,16 +81,18 @@ if __name__ == '__main__':
                             traci.trafficlight.Phase(32, "rrrrrGrrrrrG"), 
                             traci.trafficlight.Phase(3, "rrrrryrrrrry")
                             ])
-    if args.reward == 'av_q':
-        env._compute_rewards = env._queue_average_reward
-    elif args.reward == 'q':
-        env._compute_rewards = env._queue_reward
-    elif args.reward == 'wait1':
-        env._compute_rewards = env._waiting_time_reward
+    if args.reward == 'wait':
+        env._compute_rewards = env._total_wait
     elif args.reward == 'wait2':
-        env._compute_rewards = env._waiting_time_reward2
-    elif args.reward == 'wait3':
-        env._compute_rewards = env._waiting_time_reward3
+        env._compute_rewards = env._total_wait_2
+    elif args.reward == "norm":
+        env._compute_rewards = env._normalised_mean_wait
+    elif args.reward == "norm2":
+        env._compute_rewards = env._normalised_mean_wait2
+    elif args.reward == "maxwait":
+        env._compute_rewards = env._max_wait_time
+    elif args.reward == "maxwait2":
+        env._compute_rewards = env._max_wait_time2
 
     for run in range(1, args.runs+1):
         initial_states = env.reset()
@@ -102,6 +105,9 @@ if __name__ == '__main__':
                                         initial_epsilon=args.epsilon,
                                         min_epsilon=args.min_epsilon, 
                                         decay=args.decay))for ts in env.ts_ids}
+
+        collect_ts_data =  CollectP2(ts_ids=env.ts_ids, phases=env.phases, 
+                                     filename='outputs/CollectingP/2x2') 
 
         done = {'__all__': False}
         infos = []
@@ -122,6 +128,7 @@ if __name__ == '__main__':
                 for agent_id in ql_agents.keys():
                     ql_agents[agent_id].learn(new_state=env.encode(s[agent_id]), 
                                               reward=r[agent_id])
+        collect_ts_data._write_p_data_file()
         env.save_csv(out_csv, run)
         env.close()
 
