@@ -237,9 +237,12 @@ class VariableElimination():
 
     def index(self,vector,element):
         '''
-        Inputs: a vector and an element
-        Returns: the first index of the vector where the element exists 
-        or -1 if the element doesn't belong in the vector
+        Inputs: 
+        - vector 
+        - element
+        Returns:
+        - the first index of the vector where the element exists 
+        - -1 if the element doesn't belong in the vector
         '''
         for j in range(len(vector)):
             if element == vector[j]:
@@ -248,7 +251,7 @@ class VariableElimination():
 
     def argmax(self, E, E_size, agent):
         '''
-        Randomly selects the argmax of E with respect to the first index 
+        Randomly selects the argmax of E with respect to the first index. 
         '''
         argmax = np.zeros(E_size[1:])
         argmaxshape = np.shape(argmax)
