@@ -6,7 +6,8 @@ from sumo_rl.exploration.epsilon_greedy import EpsilonGreedy
 
 class QLAgent(Agent):
 
-    def __init__(self, starting_state, state_space, action_space, alpha=0.5, gamma=0.95, exploration_strategy=EpsilonGreedy()):
+    def __init__(self, starting_state, state_space, action_space, alpha=0.5,
+                       gamma=0.95, exploration_strategy=EpsilonGreedy()):
         super(QLAgent, self).__init__(state_space, action_space)
         self.state = starting_state
         self.action_space = action_space
@@ -25,7 +26,9 @@ class QLAgent(Agent):
         pass
 
     def act(self):
-        self.action = self.exploration.choose(self.q_table, self.state, self.action_space)
+        self.action = self.exploration.choose(self.q_table,
+                                              self.state, 
+                                              self.action_space)
         return self.action
 
     def learn(self, new_state, reward, done=False):
@@ -35,6 +38,8 @@ class QLAgent(Agent):
         s = self.state
         s1 = new_state
         a = self.action
-        self.q_table[s][a] = self.q_table[s][a] + self.alpha*(reward + self.gamma*max(self.q_table[s1]) - self.q_table[s][a])
+        self.q_table[s][a] += self.alpha*(reward + 
+                                          self.gamma*max(self.q_table[s1]) - 
+                                          self.q_table[s][a])
         self.state = s1
         self.acc_reward += reward
