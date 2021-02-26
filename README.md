@@ -1,6 +1,9 @@
 # SUMO-MARL
 
 ```
+Implementation of Coordinated Q-learning traffic lights. 
+
+
 Adapted from Lucas Alegre's github repo: https://github.com/LucasAlegre/sumo-rl
 ```
 
@@ -24,9 +27,18 @@ source ~/.bashrc
 pip3 install -e .
 ```
 
-## Examples
+## Example Networks
 
-Check [experiments] to see how to instantiate a SumoEnvironment and use it with your RL algorithm.
+Single intersection.
+A grid of 4 traffic lights arranged 2 by 2.
+A grid of 9 traffic lights arranged 3 by 3.
+A grid of 64 traffic lights arranged 8 by 8.
+
+## Implemented Algorithms
+
+Q-learning.
+Coordinated Q-learning (with variable elimination).
+Deep Q-learning.
 
 ### [Q-learning] in a single intersection:
 ```
