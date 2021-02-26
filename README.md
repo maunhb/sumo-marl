@@ -28,17 +28,20 @@ pip3 install -e .
 ```
 
 ## Example Networks
-
+```
 Single intersection.
 A grid of 4 traffic lights arranged 2 by 2.
 A grid of 9 traffic lights arranged 3 by 3.
 A grid of 64 traffic lights arranged 8 by 8.
+```
 
 ## Implemented Algorithms
-
+```
 Q-learning.
 Coordinated Q-learning (with variable elimination).
 Deep Q-learning.
+```
+
 
 ### [Q-learning] in a single intersection:
 ```
