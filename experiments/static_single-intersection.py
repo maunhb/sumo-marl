@@ -64,16 +64,14 @@ if __name__ == '__main__':
                           max_green=args.max_green,
                           max_depart_delay=0,
                           time_to_load_vehicles=120,
-                          phases=[
-                            traci.trafficlight.Phase(32, "GGrrrrGGrrrr"),  
-                            traci.trafficlight.Phase(3, "yyrrrryyrrrr"),
-                            traci.trafficlight.Phase(32, "rrGrrrrrGrrr"),   
-                            traci.trafficlight.Phase(3, "rryrrrrryrrr"),
-                            traci.trafficlight.Phase(32, "rrrGGrrrrGGr"),   
-                            traci.trafficlight.Phase(3, "rrryyrrrryyr"),
-                            traci.trafficlight.Phase(32, "rrrrrGrrrrrG"), 
-                            traci.trafficlight.Phase(3, "rrrrryrrrrry")
-                            ])
+                          phases=[traci.trafficlight.Phase(32,"GGrrrrGGrrrr"),  
+                                  traci.trafficlight.Phase(3, "yyrrrryyrrrr"),
+                                  traci.trafficlight.Phase(32,"rrGrrrrrGrrr"),   
+                                  traci.trafficlight.Phase(3, "rryrrrrryrrr"),
+                                  traci.trafficlight.Phase(32,"rrrGGrrrrGGr"),   
+                                  traci.trafficlight.Phase(3, "rrryyrrrryyr"),
+                                  traci.trafficlight.Phase(32,"rrrrrGrrrrrG"), 
+                                  traci.trafficlight.Phase(3, "rrrrryrrrrry")])
     
     if args.reward == 'wait':
         env._compute_rewards = env._total_wait
@@ -81,19 +79,19 @@ if __name__ == '__main__':
         env._compute_rewards = env._total_wait_2
 
     for run in range(1, args.runs+1):
-        initial_states = env.reset()
+        initial_states = env.reset(run)
         done = {'__all__': False}
-        collect_ts_data =  CollectP2(ts_ids=env.ts_ids, phases=env.phases,
-                               filename='outputs/CollectingP/singlestatic') 
+        # collect_ts_data =  CollectP2(ts_ids=env.ts_ids, phases=env.phases,
+        #                       filename='outputs/p_singlestatic_{}'.format(run)) 
 
         infos = []
         if args.fixed:
             for i in range(args.seconds):
                 env._sumo_step()
                 time = traci.simulation.getCurrentTime()/1000
-                collect_ts_data._add_p_data(time=time)
+                # collect_ts_data._add_p_data(time=time)
                 
-        collect_ts_data._write_p_data_file()
+        # collect_ts_data._write_p_data_file()
         env.save_csv(out_csv, run)
         env.close()
 

@@ -58,9 +58,8 @@ if __name__ == '__main__':
                               help="Run with fixed timing traffic signals.\n")
     prs.add_argument("-s", dest="seconds", type=int, default=100000, 
                              required=False, help="No. simulation seconds.\n")
-    prs.add_argument("-r", dest="reward", type=str, default='wait1', 
-                required=False, help="Reward function: [-r wait] for waiting"\
-                "time reward,  [-r wait2] for waiting time squared reward.\n")
+    prs.add_argument("-r", dest="reward", type=str, default='wait', 
+                required=False, help="Reward function.\n")
     prs.add_argument("-v", action="store_true", default=False, 
                                              help="Print experience tuple.\n")
     prs.add_argument("-runs", dest="runs", type=int, default=1, 
@@ -112,7 +111,7 @@ if __name__ == '__main__':
         raise "Error: Invalid reward."
 
     for run in range(1, args.runs+1):
-        s = env.reset()
+        s = env.reset(run)
 
         agents = {edge: CoordAgent(
                             joint_starting_state=

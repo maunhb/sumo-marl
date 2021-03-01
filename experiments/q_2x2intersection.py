@@ -14,7 +14,6 @@ import traci
 from sumo_rl.environment.env import SumoEnvironment
 from sumo_rl.agents.ql_agent import QLAgent
 from sumo_rl.exploration.epsilon_greedy import EpsilonGreedy
-
 from sumo_rl.environment.collect_p import CollectP2
 
 
