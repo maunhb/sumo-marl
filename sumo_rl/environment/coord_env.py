@@ -24,20 +24,23 @@ class SumoEnvironment(MultiAgentEnv):
     :param net_file: (str) SUMO .net.xml file
     :param route_file: (str) SUMO .rou.xml file
     :param trip_file: (str) name of .xml file to collect trip data 
-    :param phases: (traci.trafficlight.Phase list) Traffic Signal phases definition
-    :param out_csv_name: (str) name of the .csv output with simulation results. If None no output is generated
+    :param phases: (traci.trafficlight.Phase list) Traffic Signal phases 
+     definition
+    :param out_csv_name: (str) name of the .csv output with simulation results. 
+     If None no output is generated
     :param use_gui: (bool) Wheter to run SUMO simulation with GUI visualisation
     :param num_seconds: (int) Number of simulated seconds on SUMO
-    :param max_depart_delay: (int) Vehicles are discarded if they could not be inserted after max_depart_delay seconds
-    :param time_to_load_vehicles: (int) Number of simulation seconds ran before learning begins
+    :param max_depart_delay: (int) Vehicles are discarded if they could not be
+     inserted after max_depart_delay seconds
+    :param time_to_load_vehicles: (int) Number of simulation seconds ran 
+     before learning begins
     :param delta_time: (int) Simulation seconds between actions
     :param min_green: (int) Minimum green time in a phase
     :param max_green: (int) Max green time in a phase
-    :single_agent: (bool) If true, it behaves like a regular gym.Env. Else, it behaves like a MultiagentEnv (https://github.com/ray-project/ray/blob/master/python/ray/rllib/env/multi_agent_env.py)
     """
 
     def __init__(self, net_file, route_file, trip_file, summary_file, phases, out_csv_name=None, use_gui=False, num_seconds=20000, max_depart_delay=100000,
-                 time_to_load_vehicles=0, delta_time=5, min_green=5, max_green=50, single_agent=False):
+                 time_to_load_vehicles=0, delta_time=5, min_green=5, max_green=50):
 
         self._net = net_file
         self._route = route_file
@@ -51,7 +54,6 @@ class SumoEnvironment(MultiAgentEnv):
 
         traci.start([sumolib.checkBinary('sumo'), '-n', self._net])  # start only to retrieve information
 
-        self.single_agent = single_agent
         self.ts_ids = traci.trafficlight.getIDList()
         self.lanes_per_ts = len(set(traci.trafficlight.getControlledLanes(self.ts_ids[0])))
         self.traffic_signals = dict()
@@ -122,10 +124,7 @@ class SumoEnvironment(MultiAgentEnv):
         for _ in range(self.time_to_load_vehicles):
             self._sumo_step()
 
-        if self.single_agent:
-            return self._compute_observations()[self.ts_ids[0]]
-        else:
-            return self._compute_observations()
+        return self._compute_observations()
 
     @property
     def sim_step(self):
@@ -153,22 +152,15 @@ class SumoEnvironment(MultiAgentEnv):
         self.metrics.append(info)
         self.last_reward = reward
 
-        if self.single_agent:
-            return observation[self.ts_ids[0]], reward[self.ts_ids[0]], done['__all__'], {}
-        else:
-            return observation, reward, done, {}
+        return observation, reward, done, {}
 
     def _apply_actions(self, actions):
         """
         Set the next green phase for the traffic signals
-        :param actions: If single-agent, actions is an int between 0 and self.num_green_phases (next green phase)
-                        If multiagent, actions is a dict {ts_id : greenPhase}
+        :param actions: actions is a dict {ts_id : greenPhase}
         """   
-        if self.single_agent:
-            self.traffic_signals[self.ts_ids[0]].set_next_phase(actions)
-        else:
-            for ts, action in actions.items():
-                self.traffic_signals['{}'.format(ts)].set_next_phase(action)
+        for ts, action in actions.items():
+            self.traffic_signals['{}'.format(ts)].set_next_phase(action)
 
     def _compute_observations(self):
         """
