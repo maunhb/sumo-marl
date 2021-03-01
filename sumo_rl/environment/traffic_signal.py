@@ -11,8 +11,9 @@ import traci
 
 class TrafficSignal:
     """
-    This class represents a Traffic Signal of an intersection
-    It is responsible for retrieving information and changing the traffic phase using Traci API
+    This class represents a Traffic Signal of an intersection. It is 
+    responsible for retrieving information and changing the traffic phase
+    using Traci API.
     """
 
     def __init__(self, env, ts_id, delta_time, min_green, max_green, phases):
@@ -24,12 +25,13 @@ class TrafficSignal:
         self.max_green = max_green
         self.green_phase = 0
         self.num_green_phases = len(phases) // 2
-        self.lanes = list(dict.fromkeys(traci.trafficlight.getControlledLanes(self.id)))  # remove duplicates and keep order
+        self.lanes = list(dict.fromkeys(  # remove duplicates and keep order
+                        traci.trafficlight.getControlledLanes(self.id))) 
         self.edges = self._compute_edges()
         self.edges_capacity = self._compute_edges_capacity()
-
         logic = traci.trafficlight.Logic("new-program", 0, 0, phases=phases)
         traci.trafficlight.setCompleteRedYellowGreenDefinition(self.id, logic)
+
 
     @property
     def phase(self):
@@ -37,7 +39,8 @@ class TrafficSignal:
 
     def set_next_phase(self, new_phase):
         """
-        Sets what will be the next green phase and sets yellow phase if the next phase is different than the current
+        Sets what will be the next green phase and sets yellow phase if the 
+        next phase is different than the current.
 
         :param new_phase: (int) Number between [0..num_green_phases] 
         """
@@ -48,7 +51,7 @@ class TrafficSignal:
         else:
             self.time_on_phase = self.delta_time
             self.green_phase = new_phase
-            traci.trafficlight.setPhase(self.id, self.phase + 1)  # turns yellow
+            traci.trafficlight.setPhase(self.id, self.phase + 1) # turns yellow
             
     def update_phase(self):
         """
@@ -60,22 +63,30 @@ class TrafficSignal:
         """
         return: Dict green phase to edge id
         """
-        return {p : self.lanes[p*2:p*2+2] for p in range(self.num_green_phases)}  # two lanes per edge
+        return {p: self.lanes[p*2:p*2+2] for p in range(self.num_green_phases)}
 
     def _compute_edges_capacity(self):
         vehicle_size_min_gap = 7.5  # 5(vehSize) + 2.5(minGap)
         return {
-            p : sum([traci.lane.getLength(lane) for lane in self.edges[p]]) / vehicle_size_min_gap for p in range(self.num_green_phases)
+            p : sum([traci.lane.getLength(lane) 
+                    for lane in self.edges[p]]) / vehicle_size_min_gap 
+                    for p in range(self.num_green_phases)
         }
 
     def get_density(self):
-        return [sum([traci.lane.getLastStepVehicleNumber(lane) for lane in self.edges[p]]) / self.edges_capacity[p] for p in range(self.num_green_phases)]
+        return [sum([traci.lane.getLastStepVehicleNumber(lane) 
+                     for lane in self.edges[p]]) / self.edges_capacity[p] 
+                     for p in range(self.num_green_phases)]
 
     def get_stopped_density(self):
-        return [sum([traci.lane.getLastStepHaltingNumber(lane) for lane in self.edges[p]]) / self.edges_capacity[p] for p in range(self.num_green_phases)]
+        return [sum([traci.lane.getLastStepHaltingNumber(lane) 
+                     for lane in self.edges[p]]) / self.edges_capacity[p] 
+                     for p in range(self.num_green_phases)]
 
     def get_stopped_vehicles_num(self):
-        return [sum([traci.lane.getLastStepHaltingNumber(lane) for lane in self.edges[p]]) for p in range(self.num_green_phases)]
+        return [sum([traci.lane.getLastStepHaltingNumber(lane) 
+                     for lane in self.edges[p]]) 
+                     for p in range(self.num_green_phases)]
 
     def get_waiting_time(self):
         wait_time_per_road = []
@@ -88,7 +99,10 @@ class TrafficSignal:
                 if veh not in self.env.vehicles:
                     self.env.vehicles[veh] = {veh_lane: acc}
                 else:
-                    self.env.vehicles[veh][veh_lane] = acc - sum([self.env.vehicles[veh][lane] for lane in self.env.vehicles[veh].keys() if lane != veh_lane])
+                    self.env.vehicles[veh][veh_lane] = acc - sum( 
+                         [self.env.vehicles[veh][lane] 
+                         for lane in self.env.vehicles[veh].keys() 
+                         if lane != veh_lane])
                 wait_time += self.env.vehicles[veh][veh_lane]
             wait_time_per_road.append(wait_time)
         return wait_time_per_road
@@ -103,7 +117,10 @@ class TrafficSignal:
                 if veh not in self.env.vehicles:
                     self.env.vehicles[veh] = {veh_lane: acc}
                 else:
-                    self.env.vehicles[veh][veh_lane] = acc - sum([self.env.vehicles[veh][lane] for lane in self.env.vehicles[veh].keys() if lane != veh_lane])
+                    self.env.vehicles[veh][veh_lane] = acc - sum(
+                         [self.env.vehicles[veh][lane] 
+                         for lane in self.env.vehicles[veh].keys() 
+                         if lane != veh_lane])
                 wait_time= np.append(wait_time,self.env.vehicles[veh][veh_lane])
             
         return wait_time
@@ -118,7 +135,10 @@ class TrafficSignal:
                 if veh not in self.env.vehicles:
                     self.env.vehicles[veh] = {veh_lane: acc}
                 else:
-                    self.env.vehicles[veh][veh_lane] = acc - sum([self.env.vehicles[veh][lane] for lane in self.env.vehicles[veh].keys() if lane != veh_lane])
+                    self.env.vehicles[veh][veh_lane] = acc - sum(
+                         [self.env.vehicles[veh][lane] 
+                         for lane in self.env.vehicles[veh].keys() 
+                         if lane != veh_lane])
                 wait_time= np.append(wait_time,self.env.vehicles[veh][veh_lane])
         max_wait_time = np.max(wait_time)
         return max_wait_time
@@ -134,18 +154,25 @@ class TrafficSignal:
                 if veh not in self.env.vehicles:
                     self.env.vehicles[veh] = {veh_lane: acc}
                 else:
-                    self.env.vehicles[veh][veh_lane] = acc - sum([self.env.vehicles[veh][lane] for lane in self.env.vehicles[veh].keys() if lane != veh_lane])
+                    self.env.vehicles[veh][veh_lane] = acc - sum(
+                         [self.env.vehicles[veh][lane] 
+                         for lane in self.env.vehicles[veh].keys() 
+                         if lane != veh_lane])
                 wait_time += self.env.vehicles[veh][veh_lane]
             wait_time_per_road.append(wait_time)
         return wait_time_per_road
 
     def get_lanes_density(self):
         vehicle_size_min_gap = 7.5  # 5(vehSize) + 2.5(minGap)
-        return [min(1, traci.lane.getLastStepVehicleNumber(lane) / (traci.lane.getLength(lane) / vehicle_size_min_gap)) for lane in self.lanes]
+        return [min(1, traci.lane.getLastStepVehicleNumber(lane) / 
+                      (traci.lane.getLength(lane) / 
+                       vehicle_size_min_gap)) for lane in self.lanes]
     
     def get_lanes_queue(self):
-        vehicle_size_min_gap = 7.5  # 5(vehSize) + 2.5(minGap)
-        return [min(1, traci.lane.getLastStepHaltingNumber(lane) / (traci.lane.getLength(lane) / vehicle_size_min_gap)) for lane in self.lanes]
+        vehicle_size_min_gap = 7.5 
+        return [min(1, traci.lane.getLastStepHaltingNumber(lane) / 
+                      (traci.lane.getLength(lane) / 
+                       vehicle_size_min_gap)) for lane in self.lanes]
 
     @staticmethod
     def get_edge_id(lane):
@@ -171,7 +198,7 @@ class TrafficSignal:
 
     @DeprecationWarning
     def change(self):
-        if self.time_on_phase < self.min_green:  # min green time => do not change
+        if self.time_on_phase < self.min_green: # min green time, do not change
             self.keep()
         else:
             self.time_on_phase = self.delta_time
