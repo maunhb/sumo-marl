@@ -3,7 +3,6 @@ from gym import spaces
 
 
 class EpsilonGreedy:
-
     def __init__(self, initial_epsilon=1.0, min_epsilon=0.0, decay=0.99):
         self.initial_epsilon = initial_epsilon
         self.epsilon = initial_epsilon
@@ -19,7 +18,6 @@ class EpsilonGreedy:
                 actions[i] = opt_actions[i]
 
         self.epsilon = max(self.epsilon*self.decay, self.min_epsilon)
-        #print(self.epsilon)
         return actions
 
     def reset(self):
