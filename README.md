@@ -1,7 +1,7 @@
 # SUMO-MARL
 
 ```
-Implementation of Coordinated Q-learning traffic lights. 
+Implementation of Coordinated Q-learning traffic lights (Guestrin et al., 2002). 
 
 
 Adapted from Lucas Alegre's github repo: https://github.com/LucasAlegre/sumo-rl
